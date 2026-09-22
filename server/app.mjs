@@ -7,6 +7,7 @@ import { resolve, dirname } from 'node:path';
 import { openStore } from './store.mjs';
 import { extractLog, getExtractionInfo } from './extractor.mjs';
 import { buildReview as defaultBuildReview } from './analysis.mjs';
+import { buildOperatingReview } from './operating-review.mjs';
 import { hashPassword, verifyPassword, newToken, tokenHash, publicUser, sessionCookie, readSessionToken, createRateLimiter, equalSecret, SESSION_LIFETIME, INVITE_LIFETIME } from './auth.mjs';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
@@ -201,7 +202,8 @@ export function createApp(options = {}) {
       if (method === 'POST' && path === '/api/logout') { store.deleteSession(tokenHash(session.token)); return json(response, 200, { ok: true }, { 'Set-Cookie': sessionCookie('', secureCookies, true) }); }
       if (method === 'GET' && path === '/api/state') {
         const state = stateFor(user);
-        return json(response, 200, { user: publicUser(user), company: store.company(user.companyId), csrfToken: session.csrfToken, ...state, review: review(state), extraction: getExtractionInfo() });
+        const currentReview = review(state);
+        return json(response, 200, { user: publicUser(user), company: store.company(user.companyId), csrfToken: session.csrfToken, ...state, review: currentReview, operating: buildOperatingReview(state, currentReview), extraction: getExtractionInfo() });
       }
       const taskMatch = path.match(/^\/api\/tasks\/([^/]+)$/);
       const routes = ['/api/goals', '/api/requirements', '/api/tasks', '/api/logs', '/api/measurements', '/api/invites'];

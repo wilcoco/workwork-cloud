@@ -368,10 +368,13 @@ test('a case ambiguous event remains unassigned even if a caller inserts a case 
 });
 
 test('a goal association cannot borrow evidence from a different event in the log', () => {
-  const item = recorded('Inspected order PO-104. Shipped order PO-104.');
+  const item = recorded('Inspected order PO-104. Shipped lot LOT-24.');
   item.analysis.associations = [{ goalId: goal.id, eventId: item.analysis.events[1].id, sourceQuote: item.analysis.events[0].sourceQuote }];
-  const review = buildReview({ goals: [goal], cases: [caseA], logs: [item] });
-  assert.deepEqual(review.cases[0].goalLinks, []);
+  const review = buildReview({ goals: [goal], cases: [caseA, caseB], logs: [item] });
+  // Current relevance legitimately links the inspection case, but the shipping
+  // case must not borrow that other event's evidence through a forged link.
+  assert.equal(review.cases[0].goalLinks[0].goalId, goal.id);
+  assert.deepEqual(review.cases[1].goalLinks, []);
 });
 
 test('empty and malformed collections return a useful empty state', () => {

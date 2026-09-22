@@ -1,7 +1,7 @@
 const app = document.querySelector('#app');
 const dialogRoot = document.querySelector('#dialogs');
 const notifications = document.querySelector('#notifications');
-const state = { session: null, data: null, view: 'work', goalTab: 'objectives', authMode: new URLSearchParams(location.search).has('invite') ? 'join' : 'login', csrfToken: null, draft: {}, search: '', workspaceId: null };
+const state = { session: null, data: null, view: null, goalTab: 'objectives', authMode: new URLSearchParams(location.search).has('invite') ? 'join' : 'login', csrfToken: null, draft: {}, search: '', workspaceId: null, reviewGoalId: null, reviewCaseId: null, returnToReview: false };
 let fieldSequence = 0;
 let notificationTimer;
 
@@ -59,7 +59,10 @@ async function api(path, options = {}) {
 function resetWorkspaceView() {
   state.draft = {};
   state.search = '';
-  state.view = 'work';
+  state.view = null;
+  state.reviewGoalId = null;
+  state.reviewCaseId = null;
+  state.returnToReview = false;
   state.goalTab = 'objectives';
   dialogRoot.replaceChildren();
   notifications.replaceChildren();
@@ -71,6 +74,7 @@ async function refresh() {
   state.workspaceId = nextData.company?.id || null;
   state.data = nextData;
   state.session = { user: state.data.user, company: state.data.company };
+  if (!state.view) state.view = isManager() ? 'review' : 'work';
   renderShell();
 }
 function brand() {
@@ -182,6 +186,8 @@ function workView() {
     if (state.draft.caseId) body.caseId = state.draft.caseId;
     if (values.occurredAt) body.occurredAt = new Date(values.occurredAt).toISOString();
     await api('/api/logs', { method: 'POST', body });
+    if (state.returnToReview && body.caseId) { state.reviewCaseId = body.caseId; state.view = 'review'; }
+    state.returnToReview = false;
     state.draft = {};
     form.reset();
     notify('Work saved. Its evidence is now available in Review.');
@@ -210,6 +216,8 @@ function taskCard(task) {
   return el('article', { class: 'list-item task-row' }, toggle, el('div', { class: 'task-content' }, el('h3', {}, task.title), task.description && el('p', { class: 'task-description' }, task.description), el('div', { class: 'meta' }, done && badge('Done', 'green'), task.dueDate && `Due ${date(task.dueDate)}`, goal && `Goal: ${goal.title}`), task.caseId && button('Continue related work →', () => continueCase(task.caseId), 'quiet')));
 }
 function continueCase(id) {
+  state.returnToReview = state.view === 'review';
+  state.reviewCaseId = id;
   state.draft.caseId = id;
   state.view = 'work';
   renderShell();
@@ -228,7 +236,7 @@ function goalCard(goal) {
   const metric = arr(state.data.review?.metrics).find(item => item.goalId === goal.id);
   const hasActual = metric?.actual !== null && metric?.actual !== undefined;
   const label = metric?.status === 'met' ? 'Target met' : metric?.status === 'gap' ? 'Outcome gap' : 'Awaiting measurement';
-  return el('article', { class: 'goal-card' }, el('div', { class: 'item-top' }, badge(label, metric?.status === 'met' ? 'green' : metric?.status === 'gap' ? 'amber' : 'outline'), el('span', { class: 'meta' }, `${date(goal.periodStart)} – ${date(goal.periodEnd)}`)), el('h2', {}, goal.title), goal.description && el('p', { class: 'description' }, goal.description), el('div', { class: 'goal-reading' }, el('span', { class: 'number' }, hasActual ? number(metric.actual) : '—'), el('span', { class: 'unit' }, goal.unit), el('span', { class: 'meta' }, 'latest recorded actual')), el('p', { class: 'goal-target' }, `${goal.metricName} · Target ${goal.direction === 'at_most' ? '≤' : '≥'} ${number(goal.target)} ${goal.unit}`), el('div', { class: 'goal-meta' }, el('span', {}, `Scope: ${goal.scope || 'Company'}`), goal.baseline !== null && goal.baseline !== undefined && el('span', {}, `Baseline: ${number(goal.baseline)} ${goal.unit}`)), hasActual && el('p', { class: 'metric-source' }, `Source: ${metric.source || 'Manual measurement'}`), el('div', { class: 'goal-divider button-row' }, isManager() && button('+ Record measurement', () => measurementModal(goal), 'secondary small'), button('View in Review →', () => setView('review'), 'quiet')));
+  return el('article', { class: 'goal-card' }, el('div', { class: 'item-top' }, badge(label, metric?.status === 'met' ? 'green' : metric?.status === 'gap' ? 'amber' : 'outline'), el('span', { class: 'meta' }, `${date(goal.periodStart)} – ${date(goal.periodEnd)}`)), el('h2', {}, goal.title), goal.description && el('p', { class: 'description' }, goal.description), el('div', { class: 'goal-reading' }, el('span', { class: 'number' }, hasActual ? number(metric.actual) : '—'), el('span', { class: 'unit' }, goal.unit), el('span', { class: 'meta' }, 'latest recorded actual')), el('p', { class: 'goal-target' }, `${goal.metricName} · Target ${goal.direction === 'at_most' ? '≤' : '≥'} ${number(goal.target)} ${goal.unit}`), el('div', { class: 'goal-meta' }, el('span', {}, `Scope: ${goal.scope || 'Company'}`), goal.baseline !== null && goal.baseline !== undefined && el('span', {}, `Baseline: ${number(goal.baseline)} ${goal.unit}`)), hasActual && el('p', { class: 'metric-source' }, `Source: ${metric.source || 'Manual measurement'}`), el('div', { class: 'goal-divider button-row' }, isManager() && button('+ Record measurement', () => measurementModal(goal), 'secondary small'), button('View in Review →', () => { state.reviewGoalId = goal.id; state.reviewCaseId = null; setView('review'); }, 'quiet')));
 }
 function goalModal() {
   const start = localDate();
@@ -244,12 +252,14 @@ function requirementModal() {
   const dialog = modal('Add a required process', 'Define the company’s prescribed process, separately from the process observed in work.', form);
   bindSubmit(form, errorBox, async values => { await api('/api/requirements', { method: 'POST', body: { ...values, steps: values.steps.split('\n').map(step => step.trim()).filter(Boolean) } }); dialog.close(); await refresh(); notify('Required process created as version 1.'); });
 }
-function taskModal() {
+function taskModal(prefill = {}) {
+  if (!isManager()) return;
+  const suggested = typeof prefill?.title === 'string';
   const errorBox = formError();
   const goals = arr(state.data.goals);
   const cases = arr(state.data.cases);
-  const form = el('form', { class: 'form' }, field('Team task', 'title', { required: true, maxlength: 200, placeholder: 'Resolve the packaging delay for this week’s orders' }), field('Instructions', 'description', { type: 'textarea', optional: true, maxlength: 2000, rows: 3, placeholder: 'The work you are authorizing the team to carry out.' }), field('Supports an objective', 'goalId', { type: 'select', optional: true, options: [{ value: '', label: 'No objective selected' }, ...goals.map(goal => ({ value: goal.id, label: goal.title }))] }), field('Related work case', 'caseId', { type: 'select', optional: true, options: [{ value: '', label: 'No existing case' }, ...cases.map(item => ({ value: item.id, label: item.title }))] }), field('Due date', 'dueDate', { type: 'date', optional: true }), el('p', { class: 'notice' }, 'This is a team commitment authorized by you. Any member of your company can mark it done.'), errorBox, el('div', { class: 'button-row' }, el('button', { type: 'submit', class: 'button' }, 'Create team task')));
-  const dialog = modal('Authorize a team task', 'Turn a company expectation into concrete work.', form);
+  const form = el('form', { class: 'form' }, field('Team task', 'title', { value: prefill.title || '', required: true, maxlength: 200, placeholder: 'Resolve the packaging delay for this week’s orders' }), field('Instructions', 'description', { value: prefill.description || '', type: 'textarea', optional: true, maxlength: 2000, rows: 3, placeholder: 'The work you are authorizing the team to carry out.' }), field('Supports an objective', 'goalId', { value: prefill.goalId || '', type: 'select', optional: true, options: [{ value: '', label: 'No objective selected' }, ...goals.map(goal => ({ value: goal.id, label: goal.title }))] }), field('Related work case', 'caseId', { value: prefill.caseId || '', type: 'select', optional: true, options: [{ value: '', label: 'No existing case' }, ...cases.map(item => ({ value: item.id, label: item.title }))] }), field('Due date', 'dueDate', { type: 'date', optional: true }), el('p', { class: 'notice' }, 'This is a team commitment authorized by you. Any member of your company can mark it done.'), errorBox, el('div', { class: 'button-row' }, el('button', { type: 'submit', class: 'button' }, 'Create team task')));
+  const dialog = modal(suggested ? 'Create a follow-up' : 'Authorize a team task', suggested ? 'Review this suggestion. Saving authorizes a team task; the original finding stays tied to work evidence.' : 'Turn a company expectation into concrete work.', form);
   bindSubmit(form, errorBox, async values => { const body = Object.fromEntries(Object.entries(values).filter(([, value]) => value !== '')); await api('/api/tasks', { method: 'POST', body }); dialog.close(); await refresh(); notify('Team task created.'); });
 }
 function measurementModal(goal) {
@@ -270,41 +280,180 @@ function inviteModal() {
     resultBox.replaceChildren(el('div', { class: 'invite-result' }, el('h3', {}, 'Invitation ready'), el('p', {}, `Share this link with ${invite.email}. Expires ${date(invite.expiresAt)}.`), input, button('Copy invitation link', async () => { try { await navigator.clipboard.writeText(url.href); notify('Invitation link copied.'); } catch { input.focus(); input.select(); notify('Select and copy the invitation link.'); } }, 'secondary small'), el('p', {}, 'Keep this link private. The invitation token is shown here once.')));
   });
 }
+function selectReviewCase(caseId, goalId) {
+  if (goalId !== undefined) state.reviewGoalId = goalId || '__all';
+  const workCase = arr(state.data.operating?.cases).find(item => item.caseId === caseId);
+  if (workCase && state.reviewGoalId !== '__all' && !arr(workCase.goalIds).includes(state.reviewGoalId)) state.reviewGoalId = '__all';
+  state.reviewCaseId = caseId;
+  state.view = 'review';
+  renderShell();
+  document.querySelector('#case-briefing')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
 function reviewView() {
   const review = state.data.review || {};
-  const metrics = arr(review.metrics);
-  const cases = arr(review.cases);
-  const summary = review.summary || {};
-  const taskStatus = review.tasks || {};
-  const metricsSection = section('Outcomes against targets', 'Actuals are compared only when unit, scope, and reporting period match.', metrics.length ? el('div', { class: 'review-table-wrap' }, el('table', { class: 'review-table' }, el('thead', {}, el('tr', {}, ['Objective / measure', 'Target', 'Latest actual', 'Actual − target', 'Status'].map(title => el('th', { scope: 'col' }, title)))), el('tbody', {}, metrics.map(metric => {
-    const goal = arr(state.data.goals).find(item => item.id === metric.goalId);
-    const available = metric.actual !== null && metric.actual !== undefined;
-    return el('tr', {}, el('td', {}, el('div', { class: 'metric-title' }, metric.title), el('div', { class: 'metric-detail' }, `${metric.metricName} · ${metric.scope || 'Company'}`), isManager() && goal && button('+ Measurement', () => measurementModal(goal), 'quiet')), el('td', {}, el('span', { class: 'metric-value' }, `${goal?.direction === 'at_most' ? '≤' : '≥'} ${number(metric.target)}`), el('div', { class: 'metric-detail' }, metric.unit)), el('td', {}, el('span', { class: 'metric-value' }, available ? number(metric.actual) : '—'), el('div', { class: 'metric-source' }, available ? `Source: ${metric.source || 'Manual entry'}` : 'No comparable measurement')), el('td', {}, el('span', { class: 'metric-value' }, available && metric.gap !== null ? `${metric.gap > 0 ? '+' : ''}${number(metric.gap)}` : '—'), available && el('div', { class: 'metric-detail' }, metric.unit?.trim() === '%' ? 'percentage points' : metric.unit)), el('td', {}, badge(metric.status === 'met' ? 'Target met' : metric.status === 'gap' ? 'Gap' : 'No data', metric.status === 'met' ? 'green' : metric.status === 'gap' ? 'amber' : 'outline')));
-  })))) : empty('No outcome target yet', 'Add a measurable objective in Goals, then record actual results with a source.', isManager() ? button('Add an objective', goalModal, 'secondary small') : null, '◎'));
-  const caseList = el('div');
-  function updateCases(query) {
-    const filtered = cases.filter(item => `${item.title} ${item.id} ${arr(item.events).map(event => event.text).join(' ')}`.toLowerCase().includes(query.toLowerCase()));
-    caseList.replaceChildren(...(filtered.length ? filtered.map((item, index) => caseCard(item, index === 0)) : [cases.length ? el('p', { class: 'filtered-empty' }, 'No cases match your search.') : empty('The process starts with evidence', 'Save a work entry to see its extracted activities. Continue an existing case to build a connected work history.', button('Write a work entry', () => setView('work'), 'secondary small'), '→')]));
+  const operating = state.data.operating || {};
+  const goals = arr(state.data.goals);
+  const cases = arr(operating.cases);
+  if (!state.reviewGoalId || (state.reviewGoalId !== '__all' && !goals.some(goal => goal.id === state.reviewGoalId))) {
+    state.reviewGoalId = goals.find(goal => arr(operating.goalSummaries).some(summary => summary.goalId === goal.id && arr(summary.needsAttentionCaseIds).length))?.id || goals[0]?.id || '__all';
   }
-  updateCases(state.search);
-  const search = el('input', { type: 'search', class: 'search-input', value: state.search, placeholder: 'Find a work case…', 'aria-label': 'Search work cases', oninput: event => { state.search = event.target.value; updateCases(state.search); } });
-  const evidence = section('How the work unfolds', 'Observed activities, suggested goal links, and required steps.', caseList, cases.length ? search : null);
-  evidence.append(el('p', { class: 'small-note' }, 'A timeline shows recorded evidence. Sequence alone does not prove a dependency. Missing evidence does not mean work was not performed.'));
-  const guide = el('aside', { class: 'section review-guide' }, el('div', { class: 'eyebrow' }, 'Read the full picture'), el('h2', {}, 'Three separate checks'), el('div', { class: 'guide-item' }, el('div', { class: 'guide-number' }, '01 / WORK'), el('h3', {}, 'Expected vs recorded'), el('p', {}, `${taskStatus.open || 0} open and ${taskStatus.done || 0} completed team tasks. Completion is a reported work status.`)), el('div', { class: 'guide-item' }, el('div', { class: 'guide-number' }, '02 / PROCESS'), el('h3', {}, 'Required vs observed'), el('p', {}, 'Compare management’s prescribed steps with source-linked evidence. Applicability and matches remain provisional.')), el('div', { class: 'guide-item' }, el('div', { class: 'guide-number' }, '03 / OUTCOME'), el('h3', {}, 'Target vs measured actual'), el('p', {}, 'A work entry or completed task does not establish that the business target was achieved.')), el('div', { class: 'review-legend' }, badge('Suggested link', 'blue'), badge('Source evidence', 'green')));
-  return el('div', {}, pageHeader('Evidence & alignment', 'See where things stand.', 'Company expectations meet the work your team has actually recorded.'), summaryStrip([[summary.eventCount || 0, 'Recorded activities'], [summary.caseCount ?? cases.length, 'Work cases'], [summary.unlinkedEventCount || 0, 'Activities without goal links'], [metrics.filter(item => item.status === 'gap').length, 'Measured outcome gaps']]), el('div', { class: 'stack' }, metricsSection, el('div', { class: 'review-columns' }, evidence, guide), arr(review.warnings).length > 0 && el('details', { class: 'review-notes' }, el('summary', {}, 'How to interpret this review'), el('ul', {}, arr(review.warnings).map(warning => el('li', {}, warning))))));
+  const goal = goals.find(item => item.id === state.reviewGoalId);
+  const linkedCases = goal ? cases.filter(item => arr(item.goalIds).includes(goal.id)) : cases;
+  let selected = linkedCases.find(item => item.caseId === state.reviewCaseId);
+  if (!selected) selected = linkedCases.find(item => item.readiness === 'needs_attention') || linkedCases[0];
+  state.reviewCaseId = selected?.caseId || null;
+  const rawCase = arr(review.cases).find(item => item.id === selected?.caseId);
+  const selector = field('Company objective', 'reviewGoal', { type: 'select', value: state.reviewGoalId, options: [...goals.map(item => ({ value: item.id, label: item.title })), { value: '__all', label: 'All work · including unlinked cases' }] });
+  selector.querySelector('select').addEventListener('change', event => { state.reviewGoalId = event.target.value; state.reviewCaseId = null; renderShell(); });
+  const attention = arr(operating.attention).filter(item => !goal || item.goalId === goal.id || linkedCases.some(work => work.caseId === item.caseId));
+  const warnings = [...new Set([...arr(operating.warnings), ...arr(review.warnings)])];
+  const caseButtons = linkedCases.map(item => {
+    const active = item.caseId === selected?.caseId;
+    const tone = item.readiness === 'needs_attention' ? 'waiting' : item.readiness === 'evidence_available' ? 'reported' : 'unknown';
+    return el('button', { class: `case-choice${active ? ' selected' : ''}`, type: 'button', 'aria-pressed': String(active), onclick: () => selectReviewCase(item.caseId) }, el('span', { class: `case-indicator ${tone}`, 'aria-hidden': 'true' }), el('span', {}, item.title), el('small', {}, `${arr(item.participants).length} ${arr(item.participants).length === 1 ? 'contributor' : 'contributors'}`));
+  });
+  const board = el('div', { class: 'connection-board' },
+    el('section', { class: 'intent-band', 'aria-label': 'Management direction and measured outcome' },
+      el('div', { class: 'intent-copy' }, el('div', { class: 'layer-label' }, el('span', { class: 'layer-number' }, '01'), 'MANAGEMENT INTENT'), selector,
+        goal ? el('p', { class: 'intent-description' }, goal.description || 'Management-defined outcome and measurement target.') : el('p', { class: 'intent-description' }, goals.length ? 'Explore work with and without a supported objective relationship.' : 'Add a measurable objective to connect management’s direction with everyday evidence.'),
+        !goals.length && isManager() && button('+ Add an objective', goalModal, 'secondary small')),
+      goal ? outcomeReading(goal, arr(review.metrics).find(item => item.goalId === goal.id)) : el('div', { class: 'outcome-reading outcome-empty' }, el('span', { class: 'micro-label' }, 'OUTCOMES STAY MEASURED'), el('p', {}, 'Choose an objective to see its sourced actual and target.'))),
+    el('div', { class: 'connection-label' }, el('span', { class: 'connection-stem', 'aria-hidden': 'true' }), goal ? `${linkedCases.length} ${linkedCases.length === 1 ? 'case' : 'cases'} with a suggested relationship` : 'Shared work, including work without a goal link', badge('Source-based suggestions', 'outline')),
+    el('section', { class: 'shared-work-layer', 'aria-label': 'Connected work cases' },
+      el('div', { class: 'shared-heading' }, el('div', { class: 'layer-label' }, el('span', { class: 'layer-number' }, '02'), 'SHARED WORK'), el('span', { class: 'field-help' }, 'Select a case to follow the evidence')),
+      caseButtons.length ? el('div', { class: 'case-picker', 'aria-label': 'Choose a work case' }, caseButtons) : empty(goal ? 'No linked work evidence yet' : 'Your operating picture starts here', goal ? 'Save ordinary work entries. Supported relationships will appear here automatically; employees do not need to choose an objective.' : 'Write a work entry with an order, lot, or project reference. Teammates can continue it to build a shared case.', button('Write a work entry', () => setView('work'), 'secondary small'), '↗'),
+      selected && caseBriefing(selected, rawCase, goal)),
+    selected && evidenceLayer(selected, rawCase)
+  );
+  const patterns = discoveredPatterns(operating, goal, selected);
+  return el('div', { class: 'connected-review' },
+    pageHeader('Your company, connected', 'What is the work telling us?', 'Follow an objective into the work, the people, and the evidence behind it.', button('Record work', () => setView('work'), 'secondary')),
+    el('div', { class: 'review-orientation' }, el('span', {}, 'Company intent'), el('span', { 'aria-hidden': 'true' }, '↓'), el('strong', {}, 'Shared work & emerging process'), el('span', { 'aria-hidden': 'true' }, '↑'), el('span', {}, 'Everyday evidence')),
+    el('div', { class: 'operating-layout' }, board, attentionRail(attention, goal)),
+    patterns,
+    el('details', { class: 'review-notes operating-notes' }, el('summary', {}, 'How this picture is built'), el('p', {}, 'Interpretations update from current goals and source records. Recorded work is evidence, not a guarantee of completion or a measured business result.'), warnings.length ? el('ul', {}, warnings.map(warning => el('li', {}, warning))) : el('p', {}, 'Relationships and process matches remain suggestions. Missing evidence does not mean work was not performed.'))
+  );
 }
-function caseCard(item, initiallyOpen = false) {
-  const events = arr(item.events);
-  const links = arr(item.goalLinks);
-  const requirements = arr(item.requirements);
-  const dependencies = arr(item.dependencies);
-  const caseSource = arr(state.data.cases).find(source => source.id === item.id);
-  const body = el('div', { class: 'case-detail' }, el('div', { class: 'case-actions' }, el('span', { class: 'case-reference' }, caseSource?.reference || 'Case with source-linked activity'), button('Continue this work →', () => continueCase(item.id), 'secondary small')), el('h3', { class: 'mini-heading' }, 'Evidence timeline'), el('div', { class: 'timeline' }, events.map(event => {
-    const status = { completed: ['Completed', 'green'], in_progress: ['In progress', 'blue'], planned: ['Planned', 'outline'], blocked: ['Blocked', 'amber'], recorded: ['Recorded', 'outline'] }[event.status] || ['Recorded', 'outline'];
-    const sourceLabel = { result: 'Source · Result/output', nextDependency: 'Source · Next dependency' }[event.sourceField] || 'Source';
-    return el('div', { class: 'timeline-event' }, el('div', { class: 'timeline-line', 'aria-hidden': 'true' }), el('div', { class: 'timeline-content' }, el('p', {}, event.text || event.action), el('div', { class: 'meta' }, badge(...status), event.authorName || 'Team member', '·', `${event.occurredAt ? 'Occurred' : 'Recorded'} ${date(event.occurredAt || event.recordedAt, true)}`, el('button', { type: 'button', class: 'evidence-link', onclick: () => sourceModal(event.logId, event.sourceQuote) }, sourceLabel), event.caseAmbiguous && badge('Case identity uncertain', 'amber'))));
-  })), el('h3', { class: 'mini-heading' }, 'Suggested objective relationships'), links.length ? el('div', { class: 'link-list' }, links.map(link => { const goal = arr(state.data.goals).find(goal => goal.id === link.goalId); return el('div', { class: 'suggestion' }, el('div', { class: 'item-top' }, el('strong', {}, goal?.title || 'Company objective'), badge('Suggested', 'blue')), el('p', {}, link.reason || 'Possible relationship based on source text.')); })) : el('p', { class: 'inline-empty' }, 'No objective relationship is supported by the current extraction. This work may still be necessary.'), dependencies.length > 0 && el('h3', { class: 'mini-heading' }, 'Explicit dependencies'), dependencies.map(dependency => { const from = events.find(event => event.id === dependency.fromEventId); const to = events.find(event => event.id === dependency.toEventId); return el('div', { class: 'dependency' }, from && to ? `${from.action || from.text} → ${to.action || to.text}` : dependency.reason, el('p', { class: 'description' }, dependency.reason)); }), el('h3', { class: 'mini-heading' }, 'Required vs recorded process'), requirements.length ? requirements.map(requirement => el('div', { class: 'requirement-check' }, el('div', { class: 'item-top' }, el('h3', {}, requirement.title), badge(`v${requirement.version} · Suggested match`, 'outline')), arr(requirement.steps).map(step => el('div', { class: 'requirement-step' }, el('div', { class: 'item-top' }, el('span', {}, step.title), badge(step.status === 'evidence_found' ? 'Potential evidence' : 'Not evidenced', step.status === 'evidence_found' ? 'green' : 'outline')), arr(step.evidence).map(evidence => el('button', { type: 'button', class: 'evidence-link', onclick: () => sourceModal(evidence.logId, evidence.quote) }, evidence.quote || 'Open supporting evidence')))), el('p', { class: 'field-help' }, 'Check applicability and evidence before drawing a conclusion.'))) : el('p', { class: 'inline-empty' }, 'No applicable process requirement has been suggested for this case.'));
-  return el('details', { class: 'case-item', open: Boolean(state.search) || initiallyOpen }, el('summary', {}, el('div', {}, el('div', { class: 'case-title' }, item.title || 'Work case'), el('div', { class: 'case-subtitle' }, `${events.length} ${events.length === 1 ? 'activity' : 'activities'} · ${links.length} suggested ${links.length === 1 ? 'goal link' : 'goal links'}`))), body);
+function outcomeReading(goal, metric = {}) {
+  const available = metric.actual !== null && metric.actual !== undefined;
+  const details = el('details', { class: 'measurement-details' }, el('summary', {}, 'Measurement details'),
+    el('p', { class: 'field-help' }, `${goal.scope || 'Company'} · ${date(goal.periodStart)} – ${date(goal.periodEnd)}`),
+    available && el('p', { class: 'metric-source' }, `Source: ${metric.source || 'Manually recorded measurement'}`),
+    available && metric.gap !== null && metric.gap !== undefined && el('p', { class: 'outcome-gap' }, `Actual − target: ${metric.gap > 0 ? '+' : ''}${number(metric.gap)} ${goal.unit?.trim() === '%' ? 'percentage points' : goal.unit}`),
+    isManager() && button(available ? '+ Update measurement' : '+ Record measurement', () => measurementModal(goal), 'quiet'),
+    el('p', { class: 'outcome-caveat' }, 'Measured separately from case activity.'));
+  return el('div', { class: 'outcome-reading' },
+    el('div', { class: 'item-top' }, el('span', { class: 'micro-label' }, 'MEASURED OUTCOME'), badge(metric.status === 'met' ? 'Target met' : metric.status === 'gap' ? 'Below expectation' : 'No comparable actual', metric.status === 'met' ? 'green' : metric.status === 'gap' ? 'amber' : 'outline')),
+    el('div', { class: 'outcome-values' }, el('strong', {}, available ? number(metric.actual) : '—'), el('span', {}, goal.unit), el('div', { class: 'outcome-target' }, 'target', el('b', {}, `${goal.direction === 'at_most' ? '≤' : '≥'} ${number(goal.target)} ${goal.unit}`))),
+    el('p', { class: 'outcome-metric' }, goal.metricName), details
+  );
+}
+function evidenceButton(evidence, label = 'View source') {
+  return evidence?.logId ? el('button', { type: 'button', class: 'evidence-link', onclick: () => sourceModal(evidence.logId, evidence.quote || evidence.sourceQuote) }, label) : null;
+}
+function caseBriefing(item, rawCase = {}, goal) {
+  const blockers = arr(item.blockers);
+  const current = blockers.filter(blocker => blocker.status !== 'resolved');
+  const resolved = blockers.filter(blocker => blocker.status === 'resolved');
+  const source = arr(state.data.cases).find(work => work.id === item.caseId);
+  const tasks = arr(state.data.tasks).filter(task => arr(item.openTaskIds).includes(task.id));
+  const followup = item.nextAction && { ...item.nextAction, caseId: item.caseId, goalId: goal?.id || arr(item.goalIds)[0] || null };
+  const status = item.readiness === 'needs_attention' ? ['Needs attention', 'amber'] : item.readiness === 'evidence_available' ? ['Evidence updated', 'green'] : ['Needs more context', 'outline'];
+  return el('article', { class: 'case-briefing', id: 'case-briefing' },
+    el('div', { class: 'briefing-topline' }, el('div', {}, el('div', { class: 'case-reference' }, source?.reference || 'Source-linked work case'), el('h2', {}, item.title)), badge(...status)),
+    el('p', { class: 'case-statement' }, item.statement),
+    el('div', { class: 'collaborators' }, el('div', { class: 'avatar-stack', 'aria-hidden': 'true' }, arr(item.participants).slice(0, 5).map(person => el('span', { class: 'avatar' }, (person.name || '?').split(/\s+/).slice(0, 2).map(part => part[0]).join('').toUpperCase()))), el('span', {}, arr(item.participants).length ? arr(item.participants).map(person => person.name).join(' · ') : 'No recorded contributors'), el('small', { class: 'sr-only' }, 'Authors of the linked evidence')),
+    current.length > 0 && el('div', { class: 'blocker-list' }, current.map(blocker => blockerRow(blocker))),
+    arr(item.milestones).length > 0 && el('div', { class: 'milestone-strip', 'aria-label': 'Reported activity milestones' }, arr(item.milestones).map(milestone => el('div', { class: `milestone ${milestone.state}` }, el('span', { class: 'milestone-mark', 'aria-hidden': 'true' }, milestone.state === 'reported_complete' ? '✓' : milestone.state === 'waiting' ? '◷' : '·'), el('div', {}, el('strong', {}, milestone.label), el('span', {}, milestone.state === 'reported_complete' ? 'Reported complete' : milestone.state === 'waiting' ? 'Reported waiting' : 'Not evidenced'), evidenceButton(arr(milestone.evidence)[0], 'Source'))))),
+    resolved.length > 0 && el('details', { class: 'resolution-history', open: current.length === 0 }, el('summary', {}, `${resolved.length} ${resolved.length === 1 ? 'dependency' : 'dependencies'} resolved in the recorded history`), resolved.map(blocker => blockerRow(blocker))),
+    el('div', { class: 'briefing-actions' }, button('Continue this work →', () => continueCase(item.caseId), 'secondary small'), isManager() && followup && button('Create follow-up', () => taskModal(followup), 'small'), el('span', { class: 'field-help' }, 'New evidence updates this picture.')),
+    tasks.length > 0 && el('details', { class: 'linked-followups', open: true }, el('summary', {}, `${tasks.length} open ${tasks.length === 1 ? 'follow-up' : 'follow-ups'}`), el('div', { class: 'item-list' }, tasks.map(taskCard)), el('p', { class: 'field-help' }, 'Closing a task does not clear a reported dependency. A later source record does.')),
+    processComparison(rawCase),
+    arr(rawCase?.goalLinks).length > 0 && el('details', { class: 'association-detail' }, el('summary', {}, 'Why this work is connected to an objective'), arr(rawCase.goalLinks).map(link => el('p', {}, el('strong', {}, arr(state.data.goals).find(objective => objective.id === link.goalId)?.title || 'Company objective'), el('br'), link.reason || 'Suggested from recorded work context.')))
+  );
+}
+function blockerRow(blocker) {
+  const resolved = blocker.status === 'resolved';
+  const uncertain = blocker.status === 'uncertain';
+  return el('div', { class: `blocker-row ${resolved ? 'resolved' : uncertain ? 'uncertain' : 'open'}` },
+    el('div', { class: 'blocker-symbol', 'aria-hidden': 'true' }, resolved ? '✓' : uncertain ? '?' : '◷'),
+    el('div', { class: 'blocker-copy' }, el('div', { class: 'item-top' }, el('strong', {}, blocker.label), badge(resolved ? 'Resolved by later evidence' : uncertain ? 'Timing or state uncertain' : 'Reported waiting', resolved ? 'green' : 'amber')),
+      el('p', {}, blocker.reason), el('div', { class: 'blocker-sources' }, blocker.openedBy && el('span', {}, `${resolved ? 'Earlier wait' : 'Source'} · ${blocker.openedBy.authorName || 'Team member'} · ${blocker.openedBy.occurredAt ? date(blocker.openedBy.occurredAt, true) : 'Occurrence time unknown'}`, evidenceButton(blocker.openedBy, 'Open evidence')), blocker.resolvedBy && el('span', {}, `Later result · ${blocker.resolvedBy.authorName || 'Team member'} · ${date(blocker.resolvedBy.occurredAt, true)}`, evidenceButton(blocker.resolvedBy, 'Open result'))))
+  );
+}
+function processComparison(rawCase = {}) {
+  const requirements = arr(rawCase?.requirements);
+  return el('section', { class: 'process-comparison' },
+    el('div', { class: 'comparison-heading' }, el('h3', {}, 'Required process × recorded work'), el('span', { class: 'field-help' }, 'Management expectation / suggested evidence match')),
+    requirements.length ? requirements.map(requirement => {
+      const definition = arr(state.data.requirements).find(item => item.id === requirement.id || item.id === requirement.requirementId);
+      return el('div', { class: 'process-comparison-item' }, el('div', { class: 'item-top' }, el('strong', {}, requirement.title), badge(`v${requirement.version || 1} · Suggested applicability`, 'outline')), definition && el('p', { class: 'field-help' }, `${definition.scope} · Effective ${date(definition.effectiveFrom)}`),
+        el('div', { class: 'comparison-steps' }, arr(requirement.steps).map((step, index) => el('div', { class: `comparison-step ${step.status === 'evidence_found' ? 'evidenced' : ''}` }, el('span', { class: 'comparison-index' }, String(index + 1).padStart(2, '0')), el('strong', {}, step.title), el('span', { class: 'comparison-status' }, step.status === 'evidence_found' ? 'Potential evidence' : 'Not evidenced'), arr(step.evidence).length > 0 && el('div', { class: 'step-sources' }, arr(step.evidence).slice(0, 3).map((evidence, i) => evidenceButton(evidence, `Source ${i + 1}`)))))));
+    }) : el('p', { class: 'inline-empty' }, 'No applicable management requirement has been suggested for this case.'),
+    el('p', { class: 'comparison-note' }, 'Missing evidence does not mean a step was skipped. Check applicability and the source before drawing a conclusion.'),
+    arr(rawCase?.dependencies).length > 0 && el('details', { class: 'dependency-detail' }, el('summary', {}, 'Explicit dependencies in the source'), arr(rawCase.dependencies).map(dependency => {
+      const from = arr(rawCase.events).find(event => event.id === dependency.fromEventId);
+      const to = arr(rawCase.events).find(event => event.id === dependency.toEventId);
+      return el('div', { class: 'dependency' }, from && to ? `${from.action || from.text} → ${to.action || to.text}` : dependency.reason, el('p', { class: 'description' }, dependency.reason), from && evidenceButton({ ...from, quote: from.sourceQuote }, 'View dependency source'));
+    }))
+  );
+}
+function evidenceLayer(item, rawCase = {}) {
+  const events = arr(rawCase?.events);
+  const byLog = new Map();
+  for (const event of events) {
+    if (!byLog.has(event.logId)) byLog.set(event.logId, []);
+    byLog.get(event.logId).push(event);
+  }
+  const evidenceCards = [...byLog.entries()].map(([logId, activities]) => {
+    const log = arr(state.data.logs).find(source => source.id === logId);
+    const first = activities[0];
+    return el('article', { class: 'work-evidence-card' }, el('div', { class: 'evidence-author' }, el('span', { class: 'evidence-author-dot', 'aria-hidden': 'true' }), el('strong', {}, first.authorName || log?.authorName || 'Team member')),
+      el('p', { class: 'evidence-date' }, first.occurredAt ? `Occurred ${date(first.occurredAt, true)}` : `Recorded ${date(first.recordedAt || log?.createdAt, true)} · occurrence time unknown`),
+      el('p', { class: 'evidence-quote' }, first.sourceQuote || first.text || log?.text || 'Open the source record'),
+      el('div', { class: 'evidence-card-footer' }, badge(`${activities.length} ${activities.length === 1 ? 'activity' : 'activities'}`, 'outline'), evidenceButton({ logId, quote: first.sourceQuote }, 'Open original')));
+  });
+  return el('section', { class: 'evidence-layer', 'aria-label': 'Everyday work evidence' }, el('div', { class: 'evidence-connector' }, el('span', { 'aria-hidden': 'true' }, '↑'), 'Built from the team’s own words'), el('div', { class: 'shared-heading' }, el('div', { class: 'layer-label' }, el('span', { class: 'layer-number' }, '03'), 'EVERYDAY EVIDENCE'), el('span', { class: 'field-help' }, `${byLog.size} source ${byLog.size === 1 ? 'record' : 'records'}`)), evidenceCards.length ? el('div', { class: 'evidence-grid' }, evidenceCards.slice(0, 3)) : el('p', { class: 'inline-empty' }, 'No source records are available for this case.'), evidenceCards.length > 3 && el('details', { class: 'more-evidence' }, el('summary', {}, `Show ${evidenceCards.length - 3} more source ${evidenceCards.length - 3 === 1 ? 'record' : 'records'}`), el('div', { class: 'evidence-grid' }, evidenceCards.slice(3))), el('p', { class: 'evidence-note' }, 'Each source remains separate from the system’s interpretation. Record order alone does not establish a process sequence.'));
+}
+function attentionRail(items, goal) {
+  const rows = items.map(item => {
+    const tasks = arr(state.data.tasks).filter(task => arr(item.existingTaskIds).includes(task.id));
+    return el('article', { class: `attention-item ${item.kind}` }, el('div', { class: 'attention-type' }, item.kind === 'waiting' ? 'REPORTED DEPENDENCY' : item.kind === 'measurement_gap' ? 'MEASURED OUTCOME' : 'RELATIONSHIP GAP'), el('h3', {}, item.title), el('p', {}, item.detail),
+      arr(item.evidence).length > 0 && el('div', { class: 'attention-sources' }, arr(item.evidence).slice(0, 2).map((evidence, index) => evidenceButton(evidence, `Source ${index + 1}`))),
+      item.caseId && button('Inspect connected work →', () => selectReviewCase(item.caseId, item.goalId || goal?.id), 'quiet'),
+      tasks.length > 0 && el('p', { class: 'attention-task-note' }, `${tasks.length} linked ${tasks.length === 1 ? 'task' : 'tasks'} · ${tasks.filter(task => task.status !== 'done').length} open`),
+      isManager() && item.suggestedTask && button('Create follow-up', () => taskModal(item.suggestedTask), 'secondary small'));
+  });
+  return el('aside', { class: 'attention-rail', 'aria-label': 'Attention and actions' }, el('div', { class: 'attention-heading' }, el('div', { class: 'eyebrow' }, 'From evidence to action'), el('h2', {}, 'Needs a closer look'), el('p', {}, goal ? 'Findings connected to this objective.' : 'Findings across the current workspace.')), rows.length ? rows : el('div', { class: 'attention-clear' }, el('span', { 'aria-hidden': 'true' }, '◌'), el('h3', {}, 'No supported finding here yet'), el('p', {}, 'As work and measurements arrive, reported waits and outcome gaps will appear here. This is not an all-clear on operations.')), el('p', { class: 'attention-footnote' }, 'Follow-ups are suggestions until a manager creates a team task.'));
+}
+function discoveredPatterns(operating, goal) {
+  const relevant = item => goal ? item.goalId === goal.id || arr(item.caseIds).some(id => arr(operating.cases).some(work => work.caseId === id && arr(work.goalIds).includes(goal.id))) : true;
+  const patterns = arr(operating.patterns).filter(relevant);
+  const activityPatterns = arr(operating.processPatterns).filter(relevant);
+  if (!patterns.length && !activityPatterns.length) return el('section', { class: 'pattern-onboarding' }, el('div', { class: 'eyebrow' }, 'Understanding that accumulates'), el('h2', {}, 'One case explains an event. Comparable cases reveal a pattern.'), el('p', {}, 'Recurring waits and observed activity patterns appear when at least two comparable recorded cases support them. No process sequence is assumed from timestamps.'));
+  const caseName = id => arr(state.data.cases).find(item => item.id === id)?.title || 'Work case';
+  const recurring = patterns.map(pattern => {
+    const cohortCases = arr(pattern.cohortCaseIds).map(id => button(`${arr(pattern.caseIds).includes(id) ? 'Reported in' : 'Cohort case'} · ${caseName(id)}`, () => selectReviewCase(id, goal?.id || pattern.goalId), 'quiet'));
+    const sourceLinks = arr(pattern.evidence).map(evidence => evidenceButton(evidence, `${evidence.authorName || 'Team member'} · ${evidence.occurredAt ? date(evidence.occurredAt, true) : 'Time unknown'}`));
+    return el('article', { class: 'recurring-finding' },
+      el('div', { class: 'pattern-ratio' }, el('strong', {}, pattern.count), el('span', {}, `of ${pattern.total} cases`)),
+      el('div', { class: 'pattern-detail' }, el('h3', {}, pattern.label), el('p', {}, pattern.cohortLabel || 'Within these comparable recorded cases.'),
+        el('details', {}, el('summary', {}, 'Inspect cases and sources'), el('p', { class: 'field-help' }, 'A past wait remains part of this pattern after it is resolved.'), el('div', { class: 'pattern-case-list' }, cohortCases), el('div', { class: 'pattern-source-list' }, sourceLinks)))
+    );
+  });
+  const processes = activityPatterns.map(pattern => {
+    const nodes = arr(pattern.activities).map(activity => {
+      const caseLinks = arr(activity.caseIds).map(id => button(caseName(id), () => selectReviewCase(id, goal?.id || pattern.goalId), 'quiet'));
+      const sources = arr(activity.evidence).slice(0, 5).map(evidence => evidenceButton(evidence, `Source · ${evidence.authorName || 'Team member'}`));
+      return el('details', { class: 'activity-node' }, el('summary', {}, el('span', { class: 'activity-node-dot', 'aria-hidden': 'true' }), el('strong', {}, activity.label), el('span', {}, `${activity.count} / ${pattern.caseCount} cases`)), el('div', { class: 'activity-node-sources' }, caseLinks, sources));
+    });
+    return el('article', { class: 'activity-pattern' }, el('div', { class: 'item-top' }, el('div', {}, el('h3', {}, pattern.title), el('p', {}, `${pattern.caseCount} comparable recorded cases · activity presence, not an inferred sequence`)), badge('Observed activities', 'blue')), el('div', { class: 'activity-pattern-nodes' }, nodes));
+  });
+  return el('section', { class: 'discovery-section' },
+    el('div', { class: 'discovery-heading' }, el('div', {}, el('div', { class: 'eyebrow' }, 'Understanding that accumulates'), el('h2', {}, 'What repeats across the work?')), badge('Discovered from recorded cases', 'outline')),
+    recurring.length > 0 && el('div', { class: 'recurring-findings' }, recurring), processes,
+    el('p', { class: 'discovery-note' }, 'These patterns describe recorded cases in the displayed group. They do not establish company-wide prevalence or a cause of the KPI gap.')
+  );
 }
 function sourceModal(logId, quote) {
   const log = arr(state.data.logs).find(item => item.id === logId);

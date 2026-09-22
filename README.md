@@ -31,6 +31,12 @@ The demo command prints a randomly generated local password once. Save it to sig
 - Company-scoped storage, password hashing, CSRF protection, request limits, and automated isolation tests.
 - Railway Docker deployment with a separate persistent volume and a single app replica.
 
+### Connected operating review
+
+Managers open a connected view of objectives, shared work cases, collaborating authors, unresolved waiting issues and sourced outcomes. New evidence can resolve or reopen an explicitly matched waiting issue while preserving its history. A manager can create an authorized follow-up directly from a finding. Comparable case groups reveal sourced waiting patterns and recurring performed activities. Earlier evidence can become relevant to a newly added objective.
+
+Try the richer multi-author manufacturing demo with `npm run demo:connected`; it creates an independent synthetic company and prints a local manager login. See [Connected review behavior and demo](docs/CONNECTED-REVIEW.md) for the full flow and interpretation limits.
+
 Baseline extraction runs locally using conservative English/Korean text rules. It is a working extractor, but it will miss relationships outside its rules. Optional OpenAI extraction provides language-model event and goal suggestions with exact source-quote validation and fallback when unavailable. It is **not enabled by default**. Neither mode turns narrative numbers into verified KPI measurements or makes an activity association proof of causation.
 
 See [Railway deployment](docs/RAILWAY-DEPLOYMENT.md), [pilot scope and limitations](docs/MVP-STATUS.md), and [the implementation contract](docs/MVP-CONTRACT.md).

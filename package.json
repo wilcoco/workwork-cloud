@@ -1,6 +1,6 @@
 {
   "name": "workwork-cloud",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
   "engines": { "node": ">=22.14.0" },
@@ -8,7 +8,8 @@
     "start": "node --env-file-if-exists=.env server/app.mjs",
     "dev": "node --env-file-if-exists=.env --watch server/app.mjs",
     "test": "node --test tests/*.test.mjs",
-    "check": "node --check server/app.mjs && node --check server/store.mjs && node --check server/auth.mjs && node --check server/analysis.mjs && node --check server/extractor.mjs && node --check public/app.js",
-    "demo": "node --env-file-if-exists=.env scripts/seed-demo.mjs"
+    "check": "node --check server/app.mjs && node --check server/store.mjs && node --check server/auth.mjs && node --check server/analysis.mjs && node --check server/operating-review.mjs && node --check server/extractor.mjs && node --check public/app.js",
+    "demo": "node --env-file-if-exists=.env scripts/seed-demo.mjs",
+    "demo:connected": "node --env-file-if-exists=.env scripts/seed-operating-demo.mjs"
   }
 }

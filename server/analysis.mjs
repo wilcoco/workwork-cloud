@@ -295,6 +295,17 @@ export function buildReview({ goals = [], requirements = [], tasks = [], logs = 
         links.push({ ...link, confidence: 'suggested' });
       }
     }
+    // Current direction can make earlier evidence relevant. Re-evaluate validated
+    // source events against current goals without rewriting the saved extraction.
+    for (const event of events.filter(item => validEventIds.has(item.id))) {
+      for (const goal of goals) {
+        if (!goal || !goalIds.has(goal.id) || links.some(link => link.eventId === event.id && link.goalId === goal.id)) continue;
+        const context = sharedContext(event.sourceQuote, `${string(goal.title)} ${string(goal.description)} ${string(goal.metricName)}`);
+        if (!context.matches) continue;
+        links.push({ goalId: goal.id, eventId: event.id, confidence: 'suggested', sourceQuote: event.sourceQuote, sourceField: event.sourceField,
+          reason: `Current objective shares ${unique([...context.concepts, ...context.words]).slice(0, 4).join(', ')} context with this evidence. Suggested relevance, not proof of contribution.` });
+      }
+    }
     // Re-derive prerequisites from source-backed events, not untrusted supplied IDs.
     dependencies.push(...explicitDependencies(events.filter(event => validEventIds.has(event.id))));
   }

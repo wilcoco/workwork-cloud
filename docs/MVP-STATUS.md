@@ -11,6 +11,8 @@ The first runnable product is a **multi-company cloud pilot** intended for an in
 5. The system extracts evidence events, connects explicit case references/continuations, and suggests objective relationships.
 6. Review displays source evidence, observed timelines/dependencies, provisional required-step comparisons and measured target gaps.
 7. Managers record actual observations with unit, scope, date and source. The app preserves unmatched/absent measurements instead of inferring success from activity.
+8. Managers open a connected operating review: objective, shared case, participants, waiting issues, matching resolution history and measured result. They can authorize a follow-up directly from an evidence-backed finding.
+9. Comparable recorded cases produce sourced waiting counts and normalized activity patterns. Adding a relevant objective refreshes links to earlier evidence without overwriting original logs.
 
 ## Meaning of the outputs
 
@@ -29,7 +31,7 @@ The first runnable product is a **multi-company cloud pilot** intended for an in
 - Immutable log sources; no edit/delete workflow yet. No file attachments, external worklog import or ERP integrations.
 - Rules start at version 1 and cannot yet be revised through the interface. No binding automated compliance verdict, exception approval or workflow enforcement.
 - Case IDs rely on explicit references or continuation; ambiguous narrative similarity does not merge cases automatically.
-- No automatic cross-case process mining, durable semantic memory updates, or retrospective reprocessing when goals/rules change.
+- Bounded cross-case activity/waiting aggregation is included; general process mining and autonomous semantic memory maintenance are not. Current goals re-evaluate prior validated evidence during review. There is no background re-ingestion, stored interpretation history or process-version editing.
 - Optional AI extraction validates quotes and known goal IDs, but semantic interpretation needs pilot evaluation. No live provider validation was possible without a new key.
 - No paid subscriptions, email verification/recovery, data retention/export management, payment entitlements or billing quotas. These are required before a paid public launch.
 - One SQLite database with company-scoped access on one replica. Database-level tenant policies, managed PostgreSQL, background extraction workers and distributed limits remain scale-up work.
@@ -39,3 +41,5 @@ The first runnable product is a **multi-company cloud pilot** intended for an in
 Automated tests cover tenant boundaries, role checks, session and CSRF behavior, input validation, persistence, case continuation, conservative extraction, source provenance, measurement comparability and AI failure handling. Browser checks cover primary signup/login, narrative capture, management forms and source review journeys. See the latest build handoff for actual results; this document describes intended scope, not a claim that future changes passed.
 
 The next product decision should be based on observed pilot use: can an employee record work without extra mapping, and can management discover a useful gap with enough evidence to act?
+
+See [Connected operating review](CONNECTED-REVIEW.md) for the newer objective/case/evidence experience and its synthetic acceptance scenario.
