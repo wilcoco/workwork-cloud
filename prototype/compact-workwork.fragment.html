@@ -1,0 +1,153 @@
+<div id="compact-workwork" aria-label="Compact Workwork product concept">
+  <style>
+    #compact-workwork{--ww-bg:light-dark(#f6f7f9,#171b22);--ww-surface:light-dark(#ffffff,#202630);--ww-ink:light-dark(#182431,#edf1f7);--ww-muted:light-dark(#576678,#b5c0d0);--ww-line:light-dark(#dce3ea,#414b5c);--ww-accent:light-dark(#245ccd,#a3beff);--ww-tint:light-dark(#edf3ff,#2b3a56);--ww-warn:light-dark(#8c4a0a,#ffd095);--ww-warnbg:light-dark(#fff5e5,#403021);--ww-green:light-dark(#206247,#9bdfc1);--ww-pad:18px;--ww-gap:14px;font-family:Inter,ui-sans-serif,system-ui,sans-serif;font-size:14px;line-height:1.5;color:var(--ww-ink);background:var(--ww-bg);border:1px solid var(--ww-line);border-radius:14px;overflow:clip}
+    #compact-workwork *{box-sizing:border-box}#compact-workwork [hidden]{display:none!important}
+    #compact-workwork h2,#compact-workwork h3,#compact-workwork p{margin:0}#compact-workwork h2{font-size:24px;font-weight:500;letter-spacing:-.5px}#compact-workwork h3{font-size:16px;font-weight:500}
+    #compact-workwork button,#compact-workwork input,#compact-workwork select,#compact-workwork textarea{font:inherit;color:inherit}#compact-workwork button{cursor:pointer}
+    #compact-workwork .ww-chrome{background:var(--ww-surface);padding:16px 22px;border-bottom:1px solid var(--ww-line);display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+    #compact-workwork .ww-brand{font-size:18px;font-weight:500;display:flex;align-items:center;gap:9px}#compact-workwork .ww-brand i{color:var(--ww-accent)}#compact-workwork .ww-company{color:var(--ww-muted);font-size:12px}
+    #compact-workwork .ww-nav{display:flex;gap:6px;flex-wrap:wrap;padding:12px 22px;background:var(--ww-surface);border-bottom:1px solid var(--ww-line)}
+    #compact-workwork .ww-nav button,#compact-workwork .ww-tabs button{border:0;border-radius:7px;background:transparent;padding:9px 17px;display:flex;gap:8px;align-items:center;font-weight:500}
+    #compact-workwork .ww-nav button[aria-pressed=true],#compact-workwork .ww-tabs button[aria-pressed=true]{background:var(--ww-tint);color:var(--ww-accent)}
+    #compact-workwork .ww-body{padding:24px;display:grid;gap:var(--ww-gap)}#compact-workwork .ww-panel{display:grid;gap:var(--ww-gap)}#compact-workwork .ww-title{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+    #compact-workwork .ww-muted{color:var(--ww-muted)}#compact-workwork .ww-small{font-size:12px}#compact-workwork .ww-grid{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:var(--ww-gap)}
+    #compact-workwork .ww-box{background:var(--ww-surface);border:1px solid var(--ww-line);border-radius:10px;padding:var(--ww-pad);min-width:0}
+    #compact-workwork .ww-stack{display:grid;gap:var(--ww-gap)}#compact-workwork label{display:grid;gap:6px;font-weight:500;min-width:0}
+    #compact-workwork input,#compact-workwork select,#compact-workwork textarea{width:100%;min-width:0;background:var(--ww-surface);border:1px solid var(--ww-line);border-radius:7px;padding:10px 11px;font-size:16px;font-weight:400}#compact-workwork textarea{resize:vertical;min-height:100px}
+    #compact-workwork .ww-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--ww-gap)}#compact-workwork .ww-primary{background:var(--ww-accent);color:light-dark(#fff,#172238);border:0;border-radius:7px;padding:10px 16px;font-weight:500;justify-self:start}
+    #compact-workwork .ww-outline{border:1px solid var(--ww-line);background:var(--ww-surface);padding:8px 12px;border-radius:7px;font-weight:500}
+    #compact-workwork .ww-row{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}#compact-workwork .ww-badge{display:inline-flex;padding:3px 8px;border-radius:5px;background:var(--ww-tint);color:var(--ww-accent);font-size:12px;white-space:normal}
+    #compact-workwork .ww-warning{background:var(--ww-warnbg);color:var(--ww-warn)}#compact-workwork .ww-entry{padding:14px 0;border-top:1px solid var(--ww-line);display:grid;gap:7px}#compact-workwork .ww-entry:first-of-type{margin-top:12px}
+    #compact-workwork .ww-tabs{display:flex;gap:8px;flex-wrap:wrap}#compact-workwork .ww-metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:18px}
+    #compact-workwork .ww-number{font-size:28px;font-weight:500;letter-spacing:-.6px;font-variant-numeric:tabular-nums}#compact-workwork .ww-metriclabel{font-size:12px;color:var(--ww-muted)}
+    #compact-workwork .ww-divider{border:0;border-top:1px solid var(--ww-line);margin:16px 0}#compact-workwork .ww-evidence{padding-top:13px;border-top:1px solid var(--ww-line);display:grid;gap:5px}
+    #compact-workwork .ww-process{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:16px}
+    #compact-workwork .ww-process button{padding:13px 10px;background:var(--ww-bg);border:1px solid var(--ww-line);border-radius:7px;text-align:left;display:grid;gap:7px;min-width:0}
+    #compact-workwork .ww-process button[aria-pressed=true]{background:var(--ww-tint);border-color:var(--ww-accent)}#compact-workwork .ww-step{color:var(--ww-accent);font-weight:500}
+    #compact-workwork .ww-notice{color:var(--ww-green);min-height:21px}#compact-workwork .ww-note{padding-top:12px;border-top:1px solid var(--ww-line);color:var(--ww-muted);font-size:12px}
+    #compact-workwork .ww-linkbutton{color:var(--ww-accent);background:none;border:0;padding:0;text-align:left;font:inherit;text-decoration:underline;justify-self:start}
+    @media(max-width:680px){#compact-workwork .ww-grid{grid-template-columns:1fr}#compact-workwork .ww-body{padding:16px}#compact-workwork .ww-chrome,#compact-workwork .ww-nav{padding-left:16px;padding-right:16px}#compact-workwork .ww-process{grid-template-columns:repeat(2,minmax(0,1fr))}}
+    @media(max-width:400px){#compact-workwork .ww-fields{grid-template-columns:1fr}#compact-workwork .ww-metrics{grid-template-columns:1fr}#compact-workwork .ww-nav button{padding:9px 12px}}
+    @media(pointer:coarse){#compact-workwork button{min-height:44px}}
+  </style>
+  <header class="ww-chrome">
+    <div><div class="ww-brand"><i data-lucide="layers" aria-hidden="true"></i> Workwork</div><div class="ww-company">Example Manufacturing · Production team</div></div>
+    <span class="ww-badge">Illustrative preview</span>
+  </header>
+  <nav class="ww-nav" aria-label="Primary navigation">
+    <button type="button" data-view="work" aria-pressed="true" aria-controls="ww-work"><i data-lucide="clipboard-list" aria-hidden="true"></i>Work</button>
+    <button type="button" data-view="goals" aria-pressed="false" aria-controls="ww-goals"><i data-lucide="flag" aria-hidden="true"></i>Goals</button>
+    <button type="button" data-view="review" aria-pressed="false" aria-controls="ww-review"><i data-lucide="scan-search" aria-hidden="true"></i>Review</button>
+  </nav>
+  <main class="ww-body">
+    <section id="ww-work" class="ww-panel" aria-label="Work">
+      <div class="ww-title"><h2>Record your work</h2><span class="ww-muted ww-small">Tuesday, September 22</span></div>
+      <div class="ww-grid">
+        <form id="ww-entry-form" class="ww-box ww-stack">
+          <label>What did you do, and what happened?<textarea name="outcome" required>Checked materials for Order 2042. Resin delivery is not confirmed. Purchasing needs to follow up before production can start.</textarea></label>
+          <div class="ww-fields" id="ww-extra-fields" hidden>
+            <label>Work date<input name="workdate" type="date" value="2026-09-22"></label>
+            <label>Status, if useful<select name="status"><option value="">Detect from my entry</option><option>Needs follow-up</option><option>In progress</option><option>Completed</option></select></label>
+          </div>
+          <details><summary class="ww-muted">Add evidence</summary><div class="ww-stack" style="padding-top:12px"><label>Evidence link<input name="evidence" type="url" placeholder="https://…"></label></div></details>
+          <button type="submit" class="ww-primary">Save work entry</button>
+          <div id="ww-save-status" class="ww-notice" role="status" aria-live="polite"></div>
+        </form>
+        <section class="ww-box" aria-label="Today's work">
+          <div class="ww-row"><h3>Today’s work</h3><span class="ww-muted ww-small" id="ww-entry-count">1 entry</span></div>
+          <div id="ww-recent-entries">
+            <article class="ww-entry"><div class="ww-row"><span>Verified incoming components</span><span class="ww-badge">Completed</span></div><span class="ww-muted ww-small">Order 2040 · 09:20</span><span>Inspection record attached; materials released to production.</span><details><summary>Automatically linked</summary><div class="ww-stack" style="padding-top:10px"><span class="ww-small">Objective: Improve delivery reliability</span><span class="ww-small">Process step: Incoming material inspection</span><span class="ww-muted ww-small">Delivery outcome: not yet recorded</span></div></details></article>
+          </div>
+          <div class="ww-note">Jobs, goals and recurring steps are identified automatically.</div>
+        </section>
+      </div>
+    </section>
+    <section id="ww-goals" class="ww-panel" aria-label="Goals" hidden>
+      <div class="ww-title"><h2>Agree on success</h2><span class="ww-badge">August 2026 · Closed period</span></div>
+      <div class="ww-grid">
+        <section class="ww-box ww-stack">
+          <div><span class="ww-muted ww-small">Objective</span><h3>Improve delivery reliability</h3></div>
+          <div class="ww-evidence"><span class="ww-muted ww-small">Key result</span><span id="ww-kr-description">Raise on-time delivery from 85% to at least 95%.</span></div>
+          <div class="ww-evidence"><span class="ww-muted ww-small">Shared KPI</span><span>On-time delivery rate</span><span class="ww-muted ww-small">Orders delivered by their agreed deadline ÷ eligible orders due in August.</span></div>
+          <div class="ww-evidence"><span class="ww-muted ww-small">Accountable owner</span><span>Production manager</span></div>
+        </section>
+        <form id="ww-measure-form" class="ww-box ww-stack">
+          <h3>Record the measured result</h3>
+          <div class="ww-fields"><label>Target (%)<input id="ww-target" type="number" min="0" max="100" step="0.1" value="95" required></label><label>Eligible orders<input id="ww-total" type="number" min="1" step="1" value="100" required></label></div>
+          <label>Orders delivered on time<input id="ww-ontime" type="number" min="0" step="1" value="92" required></label>
+          <label>Measurement source<input id="ww-source" value="August delivery register" required></label>
+          <button type="submit" class="ww-primary">Update measured result</button>
+          <div id="ww-measure-status" class="ww-notice" role="status" aria-live="polite"></div>
+        </form>
+      </div>
+    </section>
+    <section id="ww-review" class="ww-panel" aria-label="Review" hidden>
+      <div class="ww-title"><h2>Review work and results</h2><span class="ww-badge">August 2026 · Closed period</span></div>
+      <div class="ww-tabs" aria-label="Review output">
+        <button type="button" data-review="outcomes" aria-pressed="true" aria-controls="ww-outcomes">Outcome gaps</button>
+        <button type="button" data-review="processes" aria-pressed="false" aria-controls="ww-processes">Observed processes</button>
+      </div>
+      <div id="ww-outcomes" class="ww-grid">
+        <section class="ww-box">
+          <div class="ww-row"><h3>On-time delivery</h3><span class="ww-badge ww-warning" id="ww-outcome-badge">Below target</span></div>
+          <div class="ww-metrics"><div><div class="ww-metriclabel">Target</div><div class="ww-number" id="ww-target-value">95%</div></div><div><div class="ww-metriclabel">Measured</div><div class="ww-number" id="ww-actual-value">92%</div></div><div><div class="ww-metriclabel" id="ww-gap-label">Shortfall</div><div class="ww-number" id="ww-gap-value">3 pp</div></div></div>
+          <hr class="ww-divider"><div class="ww-stack"><span id="ww-result-source">92 of 100 eligible orders · August delivery register</span><span class="ww-muted ww-small">Source entered by metric owner · Verification pending</span><button class="ww-linkbutton" type="button" id="ww-edit-actual">Review measurement</button></div>
+        </section>
+        <section class="ww-box ww-stack"><h3>Work to investigate</h3><div class="ww-evidence"><span>Material confirmation occurred after the planned production release.</span><span class="ww-muted ww-small">Illustrative cases: orders 1042, 1048, 1071</span></div><div class="ww-evidence"><span class="ww-muted ww-small">Proposed follow-up</span><span>Check material readiness before releasing an order.</span><span class="ww-muted ww-small">Owner: Purchasing lead · Discuss at team review</span></div><button type="button" class="ww-outline" id="ww-open-process">Inspect the process pattern</button></section>
+      </div>
+      <div id="ww-processes" class="ww-stack" hidden>
+        <section class="ww-box">
+          <div class="ww-row"><div><h3>Orders affected by a material shortage</h3><span class="ww-muted ww-small">3 illustrative cases · Select a step to inspect its records</span></div><span class="ww-badge">Automatically generated</span></div>
+          <div class="ww-process" aria-label="Observed sequence">
+            <button type="button" data-step="0" aria-pressed="true"><span class="ww-step">01</span><span>Check materials</span><span class="ww-muted ww-small">Production planning</span></button>
+            <button type="button" data-step="1" aria-pressed="false"><span class="ww-step">02</span><span>Follow up on shortage</span><span class="ww-muted ww-small">Purchasing</span></button>
+            <button type="button" data-step="2" aria-pressed="false"><span class="ww-step">03</span><span>Release production</span><span class="ww-muted ww-small">Production planning</span></button>
+            <button type="button" data-step="3" aria-pressed="false"><span class="ww-step">04</span><span>Confirm delivery</span><span class="ww-muted ww-small">Logistics</span></button>
+          </div>
+          <hr class="ww-divider"><div class="ww-stack" aria-live="polite"><span class="ww-muted ww-small" id="ww-step-source">Order 1042 · August 12 · Work record</span><span id="ww-step-record">Material check identified a resin shortage before the scheduled production start.</span></div>
+          <div class="ww-note" style="margin-top:16px">Observed pattern from recorded cases · Material shortage is a possible contributor to delays.</div>
+        </section>
+      </div>
+    </section>
+  </main>
+  <script>
+    (() => {
+      const root=document.getElementById('compact-workwork');
+      const byId=id=>root.querySelector('#'+id);
+      const showView=name=>{root.querySelectorAll('[data-view]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.view===name)));['work','goals','review'].forEach(v=>byId('ww-'+v).hidden=v!==name);};
+      const showReview=name=>{root.querySelectorAll('[data-review]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.review===name)));['outcomes','processes'].forEach(v=>byId('ww-'+v).hidden=v!==name);};
+      root.querySelectorAll('[data-view]').forEach(b=>b.addEventListener('click',()=>showView(b.dataset.view)));
+      root.querySelectorAll('[data-review]').forEach(b=>b.addEventListener('click',()=>showReview(b.dataset.review)));
+      byId('ww-edit-actual').addEventListener('click',()=>showView('goals'));
+      byId('ww-open-process').addEventListener('click',()=>showReview('processes'));
+      let entries=1;
+      const sampleEntry='Checked materials for Order 2042. Resin delivery is not confirmed. Purchasing needs to follow up before production can start.';
+      byId('ww-entry-form').addEventListener('submit',event=>{
+        event.preventDefault();const data=new FormData(event.currentTarget);const article=document.createElement('article');article.className='ww-entry';
+        const isSample=String(data.get('outcome')).trim()===sampleEntry;
+        const row=document.createElement('div');row.className='ww-row';const title=document.createElement('span');title.textContent=isSample?'Checked material availability':'Work entry';
+        const badge=document.createElement('span');badge.className='ww-badge';badge.textContent=data.get('status')||(isSample?'Needs follow-up':'Recorded');row.append(title,badge);
+        const meta=document.createElement('span');meta.className='ww-muted ww-small';meta.textContent=(isSample?'Order 2042 · ':'')+String(data.get('workdate')||'2026-09-22');
+        const outcome=document.createElement('span');outcome.textContent=data.get('outcome');article.append(row,meta,outcome);byId('ww-recent-entries').prepend(article);
+        if(isSample){const links=document.createElement('details');links.open=true;const summary=document.createElement('summary');summary.textContent='Automatically linked';links.append(summary);const facts=document.createElement('div');facts.className='ww-stack ww-small';facts.style.paddingTop='10px';['Objective: Improve delivery reliability','Process step: Material readiness check','Blocker: Unconfirmed resin delivery','Delivery outcome: not yet recorded'].forEach(value=>{const line=document.createElement('span');line.textContent=value;facts.append(line);});links.append(facts);article.append(links);}
+        byId('ww-entry-count').textContent=(++entries)+' entries';byId('ww-save-status').textContent=isSample?'Saved in this preview with example automatic links.':'Saved in this preview. Automatic analysis is available for the prepared example only.';
+      });
+      byId('ww-measure-form').addEventListener('submit',event=>{
+        event.preventDefault();const target=Number(byId('ww-target').value),total=Number(byId('ww-total').value),onTime=Number(byId('ww-ontime').value);
+        if(!Number.isFinite(target)||!Number.isFinite(total)||!Number.isFinite(onTime)||total<=0||onTime<0||onTime>total||target<0||target>100){byId('ww-measure-status').textContent='Check the counts: on-time orders cannot exceed eligible orders.';return;}
+        const actual=100*onTime/total,gap=target-actual,fmt=n=>Number(n.toFixed(1)).toString();
+        byId('ww-target-value').textContent=fmt(target)+'%';byId('ww-actual-value').textContent=fmt(actual)+'%';byId('ww-gap-value').textContent=fmt(Math.abs(gap))+' pp';byId('ww-gap-label').textContent=gap>0?'Shortfall':gap<0?'Above target':'Difference';byId('ww-outcome-badge').textContent=gap>0?'Below target':'Meets target';
+        byId('ww-outcome-badge').classList.toggle('ww-warning',gap>0);
+        byId('ww-kr-description').textContent='Raise on-time delivery from 85% to at least '+fmt(target)+'%.';
+        byId('ww-result-source').textContent=onTime+' of '+total+' eligible orders · '+byId('ww-source').value;
+        byId('ww-measure-status').textContent='Updated in this preview. The Review view now uses these values.';
+      });
+      const steps=[['Order 1042 · August 12 · Work record','Material check identified a resin shortage before the scheduled production start.'],['Order 1042 · August 13 · Work record','Purchasing requested an updated supplier delivery date.'],['Order 1042 · August 15 · Work record','Production was released after the missing material arrived.'],['Order 1042 · August 19 · Delivery record','Delivery was confirmed one day after the agreed date.']];
+      root.querySelectorAll('[data-step]').forEach(b=>b.addEventListener('click',()=>{root.querySelectorAll('[data-step]').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));const s=steps[Number(b.dataset.step)];byId('ww-step-source').textContent=s[0];byId('ww-step-record').textContent=s[1];}));
+      const design={density:'Compact',entry:'Short'};
+      const renderDesign=()=>{root.style.setProperty('--ww-pad',design.density==='Compact'?'18px':'24px');root.style.setProperty('--ww-gap',design.density==='Compact'?'14px':'22px');byId('ww-extra-fields').hidden=design.entry==='Short';};
+      renderDesign();
+      if(globalThis.Tweak){const tweak=new Tweak({container:root,onChange:renderDesign});tweak.addSelect(design,'density',{label:'Spacing',options:['Compact','Comfortable']});tweak.addSelect(design,'entry',{label:'Entry detail',options:['Short','Detailed']});}
+    })();
+  </script>
+</div>
