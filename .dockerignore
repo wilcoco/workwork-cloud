@@ -1,0 +1,10 @@
+.git
+.env
+.env.*
+node_modules
+local-data
+private
+coverage
+prototype
+*.sqlite*
+*.db*
