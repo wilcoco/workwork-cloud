@@ -14,6 +14,7 @@ This initial version contains product specifications and an interactive interfac
 
 - [Product and independent-build plan](docs/COMPACT-SAAS-PLAN.md)
 - [Work alignment framework](docs/WORK-ALIGNMENT-FRAMEWORK.md)
+- [Accepted work-entry decisions and organizational memory design](docs/WORK-CONTEXT-AND-MEMORY.md)
 - [Interactive preview](prototype/index.html)
 
 ## Product contract
@@ -25,6 +26,8 @@ Outputs: automatically generated process views and evidence-backed target-versus
 The interface has three views: **Work**, **Goals**, and **Review**. Employees are never required to select a taxonomy, map each activity to a goal, draw a process, or approve every generated relationship. Supported associations are applied automatically; uncertain evidence remains identifiable, with optional correction.
 
 A relevant activity is not a measured business outcome. Missing measurements remain unavailable rather than being inferred from activity counts.
+
+Accepted entry direction: optional **Related work**, **Result/output**, and **Next dependency**, with **Continue this work** as the first pilot improvement. The service maintains connected case histories and process knowledge as records accumulate. The LLM Wiki pattern informs this memory design; operational states, measurements and permissions remain explicit structured records. These are planning decisions, not implemented features in the current preview.
 
 ## View the concept locally
 

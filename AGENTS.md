@@ -7,6 +7,8 @@
 - Any later import or reuse of legacy implementation must be explicitly scoped. Copied components must be reviewed in this repository; no change to the source service is implied.
 - Keep the product compact: Work, Goals, Review. Automatic objective/work/result associations and automatic process generation are core responsibilities of the service.
 - Employees describe work. Do not make taxonomy selection, manual goal mapping, process drawing, or per-link AI approval prerequisites for saving or receiving value.
+- Accepted work-entry direction: offer optional Related work, Result/output and Next dependency context, populated from narrative or source context where supported. Prioritize a one-click "Continue this work" action that carries the shared case reference. Reuse task status; ask for actual occurrence time or measurement context only when relevant. Missing context must not block saving; split multi-activity logs instead of forcing one case/status onto the whole entry.
+- Maintain accumulated company knowledge behind Work / Goals / Review. Preserve source revisions, permissions and derivation provenance; generated summaries must not become authoritative measurements, assignments, commitments or approvals. Details: docs/WORK-CONTEXT-AND-MEMORY.md.
 - Preserve evidence and uncertainty. Do not fabricate actual measurements, causal contribution, business-case identity, or observed process sequences.
 - Respond in English. When the user writes English, provide a corrected version, a brief explanation, and two practice examples.
 - Use a `codex/` prefix for development branches. The independent repository's default branch is `main`.

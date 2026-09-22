@@ -1,6 +1,6 @@
 # Work Alignment Framework
 
-Version 0.4 · 2026-09-22 · Workwork Cloud product design proposal
+Version 0.5 · 2026-09-22 · Workwork Cloud product design proposal
 
 Purpose: connect management's goals with employees' daily work in manufacturing SMBs, including companies without formal workflow systems. This develops the founder's confirmed work-log, process-discovery, KPI, and OKR direction. It defines the conceptual framework for the private `wilcoco/workwork-cloud` repository. The new product has its own application, database, storage, secrets and deployment. The existing FDE and Workwork repositories, running services and production data remain unchanged. Development examples use synthetic data.
 
@@ -31,6 +31,8 @@ The founder has specified three input groups and two principal outputs. The defi
 These are alternative ways of supplying actuals, not a requirement to build every integration for the first release. The system chooses an agreed source for each metric and resolves duplicates or conflicting values instead of adding every copy together. Missing actuals produce “not measurable yet,” not estimated achievement from log counts.
 
 The employee's initial interaction stays short: “What did you do, and what happened?” They can mention a job where known. Identity and entry time come from the session; actual work time remains correctable. The service extracts case references, activities and results. Accept incomplete entries, show coverage limitations, and resolve ambiguity in the background or through optional correction; do not require a formal process or forced goal link.
+
+**Accepted capture refinement:** add optional Related work, Result/output and Next dependency context, with **Continue this work** as the first pilot improvement. Inherit a case reference when entry begins from its existing log/request; otherwise suggest supported matches. A shared product/model name is not a unique case. Reuse activity status; capture actual time and measurement details only when relevant. Apply extracted context per activity in a mixed daily log. See [Work context and organizational memory](WORK-CONTEXT-AND-MEMORY.md) for interaction and evidence rules.
 
 ### Two principal outputs
 
@@ -135,7 +137,7 @@ Reconciliation, completion, evidence, goal association, and outcome assessment a
 | Axis | Proposed treatment |
 |---|---|
 | Goal association | Automatically apply zero, one, or several supported links with provenance; preserve uncertain candidates separately and allow optional correction. Necessary operations need not have an OKR |
-| Completion | Compare the output with the item's acceptance criteria; an authorized person confirms completion |
+| Completion | Separate reported activity completion, output/result and acceptance. Apply explicit acceptance only where the case requires it; do not require approval of every ordinary work log |
 | Evidence | Show the claim, attached sources, and review state; attachment is not verification |
 | Outcome assessment | Meets target / misses target / not assessable, according to a defined metric, period, and decision rule |
 | Process | Distinguish the observed pattern from the approved standard and its effective version |
@@ -157,6 +159,14 @@ Goals with no linked work items remain visible as a separate planning question. 
 Process mining commonly relies on case identifiers, activity names, and occurrence timestamps. Narrative-only records can suggest patterns but cannot establish reliable sequences on their own. [Microsoft process-mining data requirements](https://learn.microsoft.com/en-us/power-automate/process-mining-processes-and-data)
 
 Recurring processes can exist without strategic goal links. Some work remains one-off. Standardization is optional and follows observation, rather than being a prerequisite for logging.
+
+### Maintain the interpretation over time
+
+New logs, replies, measurements and authorized corrections update the relevant shared case and its derived process/goal views. Preserve the original source revision and record which interpretations depend on it. Recompute affected views when evidence changes; expose unresolved contradictions, stale facts and missing measurements. Permission changes and deletion/retention rules must also propagate to derived views and retrieval.
+
+This persistent interpretation forms organizational memory behind Work, Goals and Review. Generated summaries can explain evidence and suggest reusable patterns; they cannot create authoritative completion, accepted responsibility, approval rights or a numeric outcome. Distinguish historical observations, present case state and proposed next work. Relevant analyses may be saved for reuse with their evidence references and freshness, without a separate employee wiki-maintenance task.
+
+The LLM Wiki comparison is documented with its original source in [Work context and organizational memory](WORK-CONTEXT-AND-MEMORY.md). It informs knowledge maintenance; the four core concepts and two principal product outputs remain unchanged.
 
 ## 6. Walk through representative cases
 

@@ -1,6 +1,6 @@
 # Workwork Cloud — Product and Independent Build Plan
 
-2026-09-22 · Proposed scope for the private `wilcoco/workwork-cloud` repository
+2026-09-22 · Updated with accepted work-entry decisions and organizational-memory design for the private `wilcoco/workwork-cloud` repository
 
 **Project boundary:** Workwork Cloud is a separate product. All new implementation belongs in `wilcoco/workwork-cloud`, with its own application, database, storage, secrets and deployment. The existing FDE and Workwork repositories, applications and production data remain unchanged. Development and demonstrations start with synthetic data.
 
@@ -45,6 +45,22 @@ The system automatically applies sufficiently supported, reversible associations
 Process generation runs as records accumulate; a user need not open a process designer or initiate every run. Distinguish the automatically generated **observed process** from a **suggested standard process**, which can also use existing manuals. Automatically assigning people new work under a changed procedure is a separate consequential action and is not implied by generating a process map.
 
 For the first pilot, evaluate the automated outputs using a sampled retrospective review by the product/service team. This is quality evaluation, not an employee workflow. Measure mapping precision and mapping coverage together, process-edge support, erroneous case merges, and reproducibility of outcome calculations.
+
+## 2B. Accepted work-entry context and accumulated company knowledge
+
+The founder accepted these capture decisions on 2026-09-22:
+
+- Keep the narrative as the main input. Offer optional **Related work**, **Result/output**, and **Next dependency** details, inferred from the narrative or inherited from the originating record where supported.
+- Prioritize **Continue this work**: starting from an existing log or request carries its stable shared case reference. A model, customer or equipment name alone is not a case. Do not require employees to create or classify a case before saving.
+- Reuse activity status and distinguish reported completion from a successful or accepted result. Split multi-activity entries; a log may reference several cases and states.
+- Capture actual occurrence time and measurement context only where relevant. An event time differs from posting time; a numeric result needs its unit, scope and source. Unknowns remain unknown.
+- Offer occasional focused clarification when it resolves useful ambiguity, without making per-link approval or answering a question a condition for saving or receiving value. A named colleague is not automatically an assigned or consenting owner.
+
+These details feed persistent company knowledge: case histories, related goals, outputs, dependencies, process patterns and unresolved contradictions are updated as evidence changes. Karpathy's LLM Wiki is an architectural reference for maintaining derived knowledge over time; it already includes business/team use. Our operational focus remains work coordination, process discovery and measurable goal review. This comparison is a design interpretation, not evidence of novelty or a replacement for pilot validation.
+
+Maintain versioned source evidence and structured operational facts beneath generated summaries. AI-maintained explanations must respect source access, identify their basis and freshness, and never grant authority or invent measurements. Correcting a source invalidates affected interpretations so they can be rebuilt. No separate wiki-authoring screen is needed for the first product.
+
+The detailed contract, synthetic examples, maintenance rules and acceptance checks are in [Work context and organizational memory](WORK-CONTEXT-AND-MEMORY.md). These additions update the plan; the existing preview still contains prepared examples only.
 
 ## 3. Default product boundary
 
@@ -97,6 +113,7 @@ No payment provider is selected. Stripe's documentation illustrates subscription
 - Establish the new repository's application and isolated development/test configuration; use a separate database, storage and secrets. Do not connect startup, scripts or deployments to legacy resources.
 - Implement access checks bound to authenticated identity, with focused role/resource tests.
 - Implement independent work records, shared work-item references and sourced metric observations without mandatory goal links.
+- Preserve source revisions and the evidence/access dependencies of derived records; keep inferred relationships separate from recorded commitments and measurements.
 - Make log and measurement-save outcomes explicit and prevent duplicate retries.
 - Define reporting-period selection and aggregation rules; expose missing or stale actuals.
 - Create synthetic examples for the pilot metric, its owner, source, denominator where applicable and update schedule.
@@ -107,9 +124,11 @@ Deliverable: one example KPI's actual and gap can be reproduced from identified 
 
 - Build the Work / Goals / Review navigation and supporting services in the new application.
 - Accept work without mandatory goal setup, mapping or process definition.
+- Build **Continue this work** first, followed by optional related-work, result/output and next-dependency context. Reuse status and date fields; missing context must not prevent saving.
 - Automatically extract case/job references and separately linkable activities from daily entries; keep ambiguous identity unresolved.
 - Apply supported goal associations automatically; distinguish automatic, optionally corrected and unresolved links in the evidence detail.
 - Generate processes as records accumulate, with traceable cases and explicit limits on inferred sequences.
+- Incrementally maintain case histories and reusable knowledge; re-evaluate affected summaries and links after corrections, and surface contradictory or stale evidence within Review.
 
 Deliverable: an employee completes the daily entry without mapping or process-design work, and a manager receives useful generated processes and gap explanations without developer assistance.
 
@@ -128,6 +147,7 @@ Deliverable: another company can receive the same product without copying busine
 - Onboard the pilot into the independent Workwork Cloud environment and operate one recurring review around the chosen process and current measurements. Any access to an existing company data source requires a separate, explicitly scoped integration or import.
 - Record what decisions the review enables and whether the follow-ups occur.
 - Measure employee entry effort, repeat usage, current metric coverage, support hours and operating cost.
+- Evaluate whether continued-work references reduce incorrect case merges and lost goal context; compare these gains against entry time and clarification burden.
 - Obtain explicit willingness to continue paying; do not treat existing internal adoption as proof of subscription demand.
 
 Deliverable: evidence for the next product and pricing decision. Agree quantitative success thresholds before the pilot rather than defining success after results arrive.
@@ -146,6 +166,8 @@ Deploy and roll back Workwork Cloud through its own release process. Test config
 
 - Repository, application, database, storage, secrets and deployment are independent of the existing services. Development and test fixtures contain synthetic data.
 - Work can be recorded before goal or process configuration, with zero mandatory mapping or process-definition actions by employees.
+- A continued entry preserves its source/case reference; ambiguous standalone entries remain saveable. Multi-activity logs can have different case matches and states.
+- A completed test with a failed result remains completed work with an unresolved outcome. Mentioning a recipient does not create an accepted assignment.
 - No measurement save fails silently, and retry does not create unintended duplicate facts.
 - Pilot KPI definitions, periods, denominators where relevant, targets and actual sources are explicit.
 - Every displayed gap can be reproduced; missing data is visibly unavailable rather than zero or inferred success.
@@ -154,6 +176,7 @@ Deploy and roll back Workwork Cloud through its own release process. Test config
 - AI relevance, human confirmation, completion and business outcomes remain distinguishable.
 - A manager can record an owned follow-up from the review.
 - Authentication, customer boundaries and private file access pass focused checks.
+- Generated summaries, case histories, search results and process views follow the same access boundary as their evidence. Source changes invalidate affected interpretations without silently rewriting historical decisions.
 - Subscription access, usage limits and account lifecycle behave as configured.
 - The pilot records decision usefulness, adoption and delivery costs as well as financial outcomes.
 
