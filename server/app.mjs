@@ -8,12 +8,19 @@ import { openStore } from './store.mjs';
 import { extractLog, getExtractionInfo } from './extractor.mjs';
 import { buildReview as defaultBuildReview } from './analysis.mjs';
 import { buildOperatingReview } from './operating-review.mjs';
+import { buildProcessMaps } from './process-map.mjs';
 import { hashPassword, verifyPassword, newToken, tokenHash, publicUser, sessionCookie, readSessionToken, createRateLimiter, equalSecret, SESSION_LIFETIME, INVITE_LIFETIME } from './auth.mjs';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const RECORD_TYPES = ['goals', 'requirements', 'tasks', 'logs', 'cases', 'measurements'];
 class HttpError extends Error { constructor(status, message) { super(message); this.status = status; } }
 const fail = (status, message) => { throw new HttpError(status, message); };
+const logRevision = log => Number.isSafeInteger(log.revision) && log.revision > 0 ? log.revision : 1;
+function historyEntry(log) {
+  return { revision: logRevision(log), log, changedAt: log.updatedAt || log.createdAt,
+    changedBy: { id: log.updatedBy || log.authorId, name: log.updatedByName || log.authorName || 'Team member' },
+    reason: log.correctionReason || 'Original record' };
+}
 
 function text(value, field, { required = true, max = 500 } = {}) {
   if (value === undefined || value === null || value === '') {
@@ -125,7 +132,10 @@ export function createApp(options = {}) {
     store.saveSession({ tokenHash: tokenHash(token), userId: user.id, csrfToken, expiresAt: now() + SESSION_LIFETIME });
     json(response, status, { user: publicUser(user), company: store.company(user.companyId), csrfToken }, { 'Set-Cookie': sessionCookie(token, secureCookies) });
   }
-  function stateFor(user) { return Object.fromEntries(RECORD_TYPES.map(type => [type, store.all(user.companyId, type)])); }
+  function stateFor(user) {
+    return Object.fromEntries(RECORD_TYPES.map(type => [type, store.all(user.companyId, type)
+      .map(record => type === 'logs' ? { ...record, revision: logRevision(record) } : record)]));
+  }
 
   const server = createServer(async (request, response) => {
     response.setHeader('X-Content-Type-Options', 'nosniff');
@@ -203,11 +213,20 @@ export function createApp(options = {}) {
       if (method === 'GET' && path === '/api/state') {
         const state = stateFor(user);
         const currentReview = review(state);
-        return json(response, 200, { user: publicUser(user), company: store.company(user.companyId), csrfToken: session.csrfToken, ...state, review: currentReview, operating: buildOperatingReview(state, currentReview), extraction: getExtractionInfo() });
+        const operating = buildOperatingReview(state, currentReview);
+        return json(response, 200, { user: publicUser(user), company: store.company(user.companyId), csrfToken: session.csrfToken, ...state,
+          review: currentReview, operating, processMaps: buildProcessMaps(state, currentReview, operating), extraction: getExtractionInfo() });
+      }
+      const historyMatch = path.match(/^\/api\/logs\/([^/]+)\/history$/);
+      if (method === 'GET' && historyMatch) {
+        const id = identifier(historyMatch[1], 'Work record ID');
+        const current = requireRecord(user, 'logs', id);
+        return json(response, 200, { logId: id, currentRevision: logRevision(current), revisions: [historyEntry(current), ...store.logHistory(user.companyId, id)] });
       }
       const taskMatch = path.match(/^\/api\/tasks\/([^/]+)$/);
+      const logMatch = path.match(/^\/api\/logs\/([^/]+)$/);
       const routes = ['/api/goals', '/api/requirements', '/api/tasks', '/api/logs', '/api/measurements', '/api/invites'];
-      if (!(method === 'POST' && routes.includes(path)) && !(method === 'PATCH' && taskMatch)) fail(404, 'API endpoint not found.');
+      if (!(method === 'POST' && routes.includes(path)) && !(method === 'PATCH' && (taskMatch || logMatch))) fail(404, 'API endpoint not found.');
       const managerOnly = method === 'POST' && path !== '/api/logs';
       if (managerOnly && user.role !== 'manager') fail(403, 'Only company managers can perform this action.');
       const body = await bodyOf(request);
@@ -255,10 +274,29 @@ export function createApp(options = {}) {
         if (Date.parse(measurement.observedAt) > now() + 60000) fail(400, 'An actual measurement cannot have a future observation time.');
         store.insert(user.companyId, 'measurements', measurement); return json(response, 201, { measurement });
       }
-      fields(body, ['text', 'result', 'nextDependency', 'caseId', 'occurredAt']);
-      const caseId = identifier(body.caseId, 'Case ID', true);
+      let previous = null, expectedRevision = null, correctionReason = null;
+      if (logMatch) {
+        const id = identifier(logMatch[1], 'Work record ID');
+        previous = requireRecord(user, 'logs', id);
+        if (previous.authorId !== user.id && user.role !== 'manager') fail(403, 'Only the author or a company manager can correct this work record.');
+        fields(body, ['expectedRevision', 'text', 'result', 'nextDependency', 'occurredAt', 'reason']);
+        if (!Number.isSafeInteger(body.expectedRevision) || body.expectedRevision < 1 || body.expectedRevision >= Number.MAX_SAFE_INTEGER) fail(400, 'expectedRevision must be a positive integer.');
+        expectedRevision = body.expectedRevision;
+        if (logRevision(previous) !== expectedRevision) fail(409, 'This work record has changed. Refresh its current revision before saving your correction.');
+        correctionReason = text(body.reason, 'Correction reason', { max: 500 });
+      } else fields(body, ['text', 'result', 'nextDependency', 'caseId', 'occurredAt']);
+      // An automatically inferred case ID is not an employee's continuation choice.
+      // Older records can retain a continuation only when their extraction explicitly records that basis.
+      const legacyContinuation = previous?.analysis?.events?.some(event => event.caseBasis === 'continuation' && event.caseId === previous.caseId) ? previous.caseId : null;
+      const caseId = previous
+        ? (Object.hasOwn(previous, 'continuationCaseId') ? previous.continuationCaseId : legacyContinuation)
+        : identifier(body.caseId, 'Case ID', true);
       if (caseId) requireRecord(user, 'cases', caseId);
-      const log = { ...base(), text: text(body.text, 'Work description', { max: 12000 }), result: text(body.result, 'Result/output', { required: false, max: 4000 }), nextDependency: text(body.nextDependency, 'Next dependency', { required: false, max: 2000 }), caseId, occurredAt: date(body.occurredAt, 'Occurrence time', { optional: true }), authorName: user.name };
+      const log = { ...(previous || base()), text: text(body.text, 'Work description', { max: 12000 }), result: text(body.result, 'Result/output', { required: false, max: 4000 }), nextDependency: text(body.nextDependency, 'Next dependency', { required: false, max: 2000 }),
+        caseId: caseId || null, continuationCaseId: caseId || null, occurredAt: date(body.occurredAt, 'Occurrence time', { optional: true }),
+        authorName: previous ? previous.authorName : user.name, revision: previous ? expectedRevision + 1 : 1 };
+      // Extraction must see the corrected source, never the previous interpretation.
+      delete log.analysis;
       if (log.occurredAt && Date.parse(log.occurredAt) > now() + 60000) fail(400, 'Actual occurrence time cannot be in the future. Describe future plans in the work entry instead.');
       if ((activeExtractions.get(user.companyId) || 0) >= 2) fail(429, 'Two work entries are already being processed for this company. Please try again shortly.');
       if (!logLimiter.allow(user.companyId, now())) fail(429, 'The pilot limit is 100 work entries per company per hour. Please try again later.');
@@ -268,9 +306,24 @@ export function createApp(options = {}) {
       try { analysis = await analyze(log, context); }
       finally { const count = (activeExtractions.get(user.companyId) || 1) - 1; if (count) activeExtractions.set(user.companyId, count); else activeExtractions.delete(user.companyId); }
       const saved = store.transaction(() => {
+        if (previous) {
+          const current = requireRecord(user, 'logs', previous.id);
+          if (logRevision(current) !== expectedRevision) fail(409, 'This work record changed while the correction was being processed. Refresh its current revision before saving.');
+          store.saveLogRevision(user.companyId, historyEntry(current));
+          log.updatedAt = new Date(now()).toISOString();
+          log.updatedBy = user.id;
+          log.updatedByName = user.name;
+          log.correctionReason = correctionReason;
+        }
         const existingCases = store.all(user.companyId, 'cases');
         const byReference = new Map(existingCases.filter(item => item.reference).map(item => [item.reference.trim().toLocaleUpperCase('en-US'), item]));
         let unreferencedCase = caseId ? requireRecord(user, 'cases', caseId) : null;
+        // Keep the same anonymous case for a correction to an anonymous record, but never
+        // carry an inferred explicit reference forward as if it were user-supplied context.
+        if (previous && !unreferencedCase && previous.caseId) {
+          const oldCase = existingCases.find(item => item.id === previous.caseId);
+          if (oldCase && !oldCase.reference) unreferencedCase = oldCase;
+        }
         const touched = new Map();
         for (const event of analysis.events) {
           if (event.caseAmbiguous === true) { event.caseId = null; continue; }
@@ -279,7 +332,7 @@ export function createApp(options = {}) {
           if (reference) {
             const normalized = reference.toLocaleUpperCase('en-US');
             assigned = byReference.get(normalized);
-            if (!assigned && unreferencedCase && !unreferencedCase.reference) {
+            if (!assigned && unreferencedCase && !unreferencedCase.reference && !previous) {
               assigned = { ...unreferencedCase, reference };
               store.replace(user.companyId, 'cases', assigned);
               unreferencedCase = assigned; byReference.set(normalized, assigned);
@@ -298,12 +351,14 @@ export function createApp(options = {}) {
           event.caseId = assigned.id;
           touched.set(assigned.id, assigned);
         }
-        if (!log.caseId && touched.size === 1) log.caseId = [...touched.keys()][0];
+        log.caseId = touched.size === 1 ? [...touched.keys()][0] : null;
         log.analysis = analysis;
-        store.insert(user.companyId, 'logs', log);
+        if (previous) {
+          if (!store.replace(user.companyId, 'logs', log)) fail(409, 'This work record is no longer available for correction.');
+        } else store.insert(user.companyId, 'logs', log);
         return [...touched.values()];
       });
-      return json(response, 201, { log, cases: saved, analysis });
+      return json(response, previous ? 200 : 201, { log, cases: saved, analysis });
     } catch (error) {
       if (!response.headersSent) json(response, error.status || 500, { error: error.status ? error.message : 'The request could not be completed. Please try again.' });
       if (!error.status) console.error('Request failed:', error.name, error.code || 'internal error');

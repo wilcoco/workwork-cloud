@@ -1,5 +1,15 @@
 # MVP build verification — 2026-09-22
 
+## Process maps and source revisions — v0.3.0
+
+- `npm run check` passed, including process-map and browser code.
+- `npm test`: **124 tests passed**, zero failures. The 27 additional tests cover map provenance, source revisions and the complete correction-to-recomputed-review workflow.
+- Process checks: no arrows from timestamps or required step order; explicit prerequisite evidence; report mentions do not establish performed inspections; distinct repeated activities; current revision attribution; required-step and objective source matches; corrected/removed evidence cannot retain a resolution edge or empty former case.
+- Revision checks: author/manager access; other-member and cross-company rejection; CSRF; complete field validation; quotas; conflicts before and after asynchronous extraction; atomic rollback; preserved authorship and exact prior snapshots; legacy revision-1 compatibility; history persistence after restart.
+- Browser acceptance: inspected the actual source wording behind an inspection-to-packing arrow; opened a resolved case; corrected its approval to pending as a manager; verified the wait returned, the resolution arrow disappeared and required QA evidence became absent. Both versions, editor identity, reason and exact original occurrence time remained visible in history. The independent KPI remained unchanged.
+- Visual check: the required/recorded lanes and source dialogs were inspected in the in-app browser. The map includes keyboard-operable controls and a readable list alternative; exhaustive device and accessibility testing remains future work.
+- The new `demo:process` fixture uses a separate synthetic company and demonstrates both a corrected record and a resolved wait. No customer data, live AI call or Railway deployment was used. Docker configuration is unchanged; prior container verification below was not repeated for this update.
+
 ## Connected Review update — v0.2.0
 
 - `npm run check` passed, including the new operating-review module and updated browser code.

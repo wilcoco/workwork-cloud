@@ -6,7 +6,10 @@ if (process.env.NODE_ENV === 'production' || Object.keys(process.env).some(key =
   throw new Error('Connected demo seeding is local-only. Use normal company registration on Railway.');
 }
 
-const email = process.env.DEMO_EMAIL || 'manager@connected-demo.workwork.test';
+const processDemo = process.argv.includes('--process');
+const companyName = processDemo ? 'Forge Works · Process Demo' : 'Harbor Works · Connected Demo';
+const referencePrefix = processDemo ? 'FORGE' : 'HARBOR';
+const email = process.env.DEMO_EMAIL || (processDemo ? 'manager@process-demo.workwork.test' : 'manager@connected-demo.workwork.test');
 const password = process.env.DEMO_PASSWORD || randomBytes(18).toString('base64url');
 if (password.length < 12 || password.length > 256) throw new Error('DEMO_PASSWORD must contain between 12 and 256 characters.');
 const app = createApp({
@@ -18,9 +21,9 @@ const origin = `http://127.0.0.1:${app.server.address().port}`;
 
 function client() {
   let cookie = '', csrf = '';
-  return async (path, body) => {
+  return async (path, body, method) => {
     const response = await fetch(origin + path, {
-      method: body === undefined ? 'GET' : 'POST',
+      method: method || (body === undefined ? 'GET' : 'POST'),
       headers: { 'Content-Type': 'application/json', Origin: origin,
         ...(cookie ? { Cookie: cookie } : {}), ...(csrf ? { 'X-CSRF-Token': csrf } : {}) },
       ...(body === undefined ? {} : { body: JSON.stringify(body) }),
@@ -41,7 +44,7 @@ const at = hoursAgo => new Date(now.getTime() - hoursAgo * 3_600_000).toISOStrin
 const manager = client();
 
 try {
-  await manager('/api/signup', { companyName: 'Harbor Works · Connected Demo', name: 'Morgan Lee', email, password });
+  await manager('/api/signup', { companyName, name: 'Morgan Lee', email, password });
   const suffix = randomBytes(6).toString('hex');
   const members = [];
   for (const [role, name] of [['quality', 'Casey Chen'], ['operations', 'Riley Park'], ['shipping', 'Sam Taylor']]) {
@@ -65,7 +68,7 @@ try {
   });
 
   for (let index = 0; index < 4; index++) {
-    const reference = `HARBOR-${101 + index}`;
+    const reference = `${referencePrefix}-${101 + index}`;
     const hoursAgo = 30 - index * 6;
     const first = await quality('/api/logs', {
       text: `Order ${reference} shipment: inspection completed.`,
@@ -74,7 +77,8 @@ try {
     const caseId = first.log.caseId || first.cases?.[0]?.id;
     if (!caseId) throw new Error(`No case was created for ${reference}.`);
     await operations('/api/logs', {
-      text: `Packing completed for order ${reference} shipment.`, caseId, occurredAt: at(hoursAgo - 1),
+      text: processDemo ? `Inspection completed for order ${reference} shipment. Packed order ${reference} only after inspection.` : `Packing completed for order ${reference} shipment.`,
+      caseId, occurredAt: at(hoursAgo - 1),
     });
     if (index < 3) {
       await shipping('/api/logs', {
@@ -89,18 +93,29 @@ try {
         text: `Dispatch confirmed for order ${reference} shipment.`, caseId, occurredAt: at(hoursAgo - 4),
       });
     }
+    if (processDemo && index === 1) {
+      const { log: mistaken } = await quality('/api/logs', {
+        text: `QA release approved for order ${reference} shipment.`, caseId, occurredAt: at(hoursAgo - 3),
+      });
+      await quality(`/api/logs/${mistaken.id}`, {
+        expectedRevision: mistaken.revision || 1,
+        text: `QA release is pending for order ${reference} shipment.`, result: '', nextDependency: '',
+        occurredAt: at(hoursAgo - 3), reason: 'Synthetic correction: the release request was received, but approval has not been given.',
+      }, 'PATCH');
+    }
   }
   await manager('/api/measurements', {
     goalId: goal.id, value: 94, unit: '%', scope: 'All shipments', observedAt: now.toISOString(),
     source: 'Synthetic monthly shipping register: 47 of 50 shipments on time. This register is separate from the four demonstration cases.',
   });
   console.log('Synthetic connected demo created. Existing company records were not changed.');
-  console.log('Company: Harbor Works · Connected Demo');
+  console.log(`Company: ${companyName}`);
   console.log(`Email: ${email}`);
   console.log(`Password: ${password}`);
   console.log('Three members authored four shared shipment cases. Three cases report a QA-release wait; one wait later resolves.');
-  console.log('Sign in locally as the manager and open Review. HARBOR-101 remains open for the follow-up / release demonstration.');
-  console.log('To record a later release, choose Continue this work and enter "QA release approved for order HARBOR-101 shipment." with an occurrence time after the recorded wait.');
+  console.log(`Sign in locally as the manager and open Review. ${referencePrefix}-101 remains open for the follow-up / release demonstration.`);
+  console.log(`To record a later release, choose Continue this work and enter "QA release approved for order ${referencePrefix}-101 shipment." with an occurrence time after the recorded wait.`);
+  if (processDemo) console.log('The process map shows explicitly reported inspection → packing dependencies. FORGE-102 includes a traceable correction; FORGE-103 preserves a resolved wait.');
 } finally {
   await app.close();
 }

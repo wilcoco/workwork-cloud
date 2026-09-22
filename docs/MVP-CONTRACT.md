@@ -1,5 +1,7 @@
 # MVP implementation contract
 
+This is the original v0.1 contract. Later additions are specified in [Connected Review](CONNECTED-REVIEW-CONTRACT.md) and [v0.3 process maps and source revisions](V03-IMPLEMENTATION-CONTRACT.md). The latter adds authorized source corrections with preserved history to the original immutable-source model.
+
 Independent Workwork Cloud, Node 22.14+ ESM, built-in HTTP and `node:sqlite`, vanilla browser JS/CSS. No production data or old service integrations. Multiple companies self-register; server-derived workspace and role scope every query. Local synthetic demo is optional; normal registration starts empty. Railway deployment uses one service replica with a persistent volume mounted at `/data`, `DATABASE_PATH=/data/workwork.sqlite`, `NODE_ENV=production`, `HOST=0.0.0.0`, platform PORT. No automatic public demo credentials. Subscription payments are outside this pilot.
 
 ## Shared module boundaries

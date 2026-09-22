@@ -13,6 +13,8 @@ The first runnable product is a **multi-company cloud pilot** intended for an in
 7. Managers record actual observations with unit, scope, date and source. The app preserves unmatched/absent measurements instead of inferring success from activity.
 8. Managers open a connected operating review: objective, shared case, participants, waiting issues, matching resolution history and measured result. They can authorize a follow-up directly from an evidence-backed finding.
 9. Comparable recorded cases produce sourced waiting counts and normalized activity patterns. Adding a relevant objective refreshes links to earlier evidence without overwriting original logs.
+10. A source-backed process map shows observed activity nodes, explicitly supported prerequisites and later matching resolutions alongside required steps and suggested objective relationships.
+11. Authors and managers can correct work records with a reason. Prior revisions remain inspectable, while active findings and maps refresh from current evidence only. Concurrent corrections cannot silently overwrite each other.
 
 ## Meaning of the outputs
 
@@ -28,7 +30,7 @@ The first runnable product is a **multi-company cloud pilot** intended for an in
 - Company-shared operational data; no department/document-level permissions.
 - One metric per objective; no OKR tree or weighted rollups yet.
 - Team tasks, not personal assignment or recurring automated task generation. Completing a team task records a claim, not proof of its outcome.
-- Immutable log sources; no edit/delete workflow yet. No file attachments, external worklog import or ERP integrations.
+- Traceable source corrections with immutable prior snapshots are included; no delete/retention workflow yet. No file attachments, external worklog import or ERP integrations.
 - Rules start at version 1 and cannot yet be revised through the interface. No binding automated compliance verdict, exception approval or workflow enforcement.
 - Case IDs rely on explicit references or continuation; ambiguous narrative similarity does not merge cases automatically.
 - Bounded cross-case activity/waiting aggregation is included; general process mining and autonomous semantic memory maintenance are not. Current goals re-evaluate prior validated evidence during review. There is no background re-ingestion, stored interpretation history or process-version editing.
@@ -43,3 +45,5 @@ Automated tests cover tenant boundaries, role checks, session and CSRF behavior,
 The next product decision should be based on observed pilot use: can an employee record work without extra mapping, and can management discover a useful gap with enough evidence to act?
 
 See [Connected operating review](CONNECTED-REVIEW.md) for the newer objective/case/evidence experience and its synthetic acceptance scenario.
+
+See [Process maps and corrections](PROCESS-MAP-AND-CORRECTIONS.md) for v0.3 source-driven maps, revision history and the Forge Works demonstration.

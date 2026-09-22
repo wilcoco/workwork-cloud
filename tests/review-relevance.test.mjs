@@ -13,6 +13,7 @@ test('a new objective can relate to existing evidence without rewriting the sour
   const updated = buildReview({ ...state, goals: [goal] });
   assert.equal(updated.cases[0].goalLinks[0].goalId, goal.id);
   assert.equal(updated.cases[0].goalLinks[0].confidence, 'suggested');
+  assert.deepEqual(updated.cases[0].goalLinks[0].evidence, [{ logId: log.id, eventId: `${log.id}:1`, quote: log.analysis.events[0].sourceQuote, sourceField: 'text', revision: 1 }]);
   assert.equal(updated.metrics[0].actual, null);
   assert.equal(JSON.stringify(log), original);
 });
@@ -21,6 +22,17 @@ test('live relevance never uses fabricated event quotes or removed objective IDs
   const goal = { id: 'current', title: 'Improve quality' };
   const log = { id: 'l', text: 'Updated the phone directory.', analysis: { events: [{ id: 'l:1', sourceQuote: 'Completed quality inspection.', status: 'completed', caseId: 'c' }], associations: [{ eventId: 'l:1', goalId: 'removed', sourceQuote: 'Completed quality inspection.' }] } };
   const result = buildReview({ goals: [goal], cases: [{ id: 'c' }], logs: [log] });
-  assert.equal(result.cases[0].events.length, 0);
-  assert.equal(result.cases[0].goalLinks.length, 0);
+  assert.deepEqual(result.cases, [], 'A case without current valid evidence cannot become a live finding.');
+  assert.equal(result.summary.caseCount, 0);
+});
+
+test('re-attributed current evidence removes the former case from live review', () => {
+  const log = { id: 'corrected', revision: 2, text: 'Inspected order NEW-2.', authorId: 'u', authorName: 'Inspector', occurredAt: '2026-09-22T09:00:00Z' };
+  log.analysis = analyzeLog(log);
+  for (const event of log.analysis.events) event.caseId = 'new-case';
+  const state = { logs: [log], cases: [{ id: 'old-case', title: 'OLD-1' }, { id: 'new-case', title: 'NEW-2' }], goals: [{ id: 'goal', title: 'Improve inspection quality' }] };
+  const review = buildReview(state);
+  assert.deepEqual(review.cases.map(item => item.id), ['new-case']);
+  assert.equal(review.cases[0].goalLinks[0].evidence[0].revision, 2);
+  assert.equal(review.summary.caseCount, 1);
 });

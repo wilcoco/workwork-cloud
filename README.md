@@ -37,6 +37,12 @@ Managers open a connected view of objectives, shared work cases, collaborating a
 
 Try the richer multi-author manufacturing demo with `npm run demo:connected`; it creates an independent synthetic company and prints a local manager login. See [Connected review behavior and demo](docs/CONNECTED-REVIEW.md) for the full flow and interpretation limits.
 
+### Process maps and source corrections — v0.3
+
+Review now includes an interactive process map: recorded activities, explicitly supported prerequisite/resolution arrows, management's required steps and suggested objective relationships. Every node and connection opens its source evidence. Authors and company managers can correct a work record with a reason; revision history preserves the prior source while the active map and findings refresh. Concurrent corrections cannot silently overwrite one another.
+
+Run `npm run demo:process` for the new Forge Works scenario, including an explicit inspection-to-packing dependency, a resolved QA wait and an approval corrected to pending. See [Process maps and corrections](docs/PROCESS-MAP-AND-CORRECTIONS.md) for the walkthrough and [v0.3 API contract](docs/V03-IMPLEMENTATION-CONTRACT.md) for implementation details.
+
 Baseline extraction runs locally using conservative English/Korean text rules. It is a working extractor, but it will miss relationships outside its rules. Optional OpenAI extraction provides language-model event and goal suggestions with exact source-quote validation and fallback when unavailable. It is **not enabled by default**. Neither mode turns narrative numbers into verified KPI measurements or makes an activity association proof of causation.
 
 See [Railway deployment](docs/RAILWAY-DEPLOYMENT.md), [pilot scope and limitations](docs/MVP-STATUS.md), and [the implementation contract](docs/MVP-CONTRACT.md).

@@ -134,13 +134,14 @@ function explicitDependencies(events) {
   for (let index = 1; index < events.length; index++) {
     const event = events[index];
     if (!['completed', 'in_progress'].includes(event.status)) continue;
+    if (/\bnot\s+only\s+after\b/iu.test(event.sourceQuote)) continue;
     const prerequisite = event.sourceQuote.match(/\bonly\s+after\s+(.+)/iu)?.[1]
       || event.sourceQuote.match(/(.+?)\s*후에만/u)?.[1];
     if (!prerequisite) continue;
     const requiredActions = actionsIn(prerequisite);
     if (!requiredActions.length) continue;
     const candidates = events.slice(0, index).filter(previous => previous.status === 'completed'
-      && sameCase(previous, event) && requiredActions.every(action => ACTIONS[action].test(previous.sourceQuote)));
+      && sameCase(previous, event) && requiredActions.every(action => COMPLETED_ACTIONS[action].test(previous.sourceQuote)));
     // Repeated inspections are ambiguous; chronology alone cannot pick one.
     if (candidates.length === 1) dependencies.push({ fromEventId: candidates[0].id, toEventId: event.id,
       reason: `An explicit prerequisite is stated: “${event.sourceQuote}”`, confidence: 'explicit' });
@@ -286,7 +287,8 @@ export function buildReview({ goals = [], requirements = [], tasks = [], logs = 
       let safeStatus = STATUSES.has(event.status) && (event.status !== 'completed' || derivedStatus === 'completed') ? event.status : derivedStatus;
       if (sourceField === 'nextDependency' && ['completed', 'in_progress'].includes(safeStatus)) safeStatus = 'recorded';
       events.push({ ...event, sourceField, status: safeStatus, caseId: !event.caseAmbiguous && caseIds.has(event.caseId) ? event.caseId : null, logId: log.id,
-        occurredAt: log.occurredAt || null, recordedAt: log.createdAt, authorName: log.authorName });
+        occurredAt: log.occurredAt || null, recordedAt: log.createdAt, authorName: log.authorName,
+        revision: Number.isInteger(log.revision) && log.revision > 0 ? log.revision : 1 });
     }
     for (const link of list(log.analysis?.associations)) {
       const sourceEvent = events.find(event => event.id === link?.eventId && validEventIds.has(event.id));
@@ -318,13 +320,22 @@ export function buildReview({ goals = [], requirements = [], tasks = [], logs = 
     });
     const ids = new Set(caseEvents.map(event => event.id));
     const goalLinks = [];
-    for (const link of links.filter(link => ids.has(link.eventId))) if (!goalLinks.some(existing => existing.goalId === link.goalId)) {
-      goalLinks.push({ goalId: link.goalId, reason: link.reason, confidence: 'suggested' });
+    for (const link of links.filter(link => ids.has(link.eventId))) {
+      let grouped = goalLinks.find(existing => existing.goalId === link.goalId);
+      if (!grouped) {
+        grouped = { goalId: link.goalId, reason: link.reason, confidence: 'suggested', evidence: [] };
+        goalLinks.push(grouped);
+      }
+      const event = caseEvents.find(item => item.id === link.eventId);
+      if (!grouped.evidence.some(item => item.eventId === event.id)) grouped.evidence.push({
+        logId: event.logId, eventId: event.id, quote: link.sourceQuote, sourceField: event.sourceField,
+        revision: event.revision,
+      });
     }
     return { id: item.id, title: item.title, reference: item.reference || null, events: caseEvents, goalLinks,
       dependencies: dependencies.filter(link => ids.has(link.fromEventId) && ids.has(link.toEventId)),
       requirements: requirementReview(item, caseEvents, requirements, warnings) };
-  });
+  }).filter(item => item.events.length > 0);
   return { metrics: measuredMetrics(goals, measurements, warnings), cases: reviewedCases,
     tasks: { open: tasks.filter(task => task?.status === 'open').length, done: tasks.filter(task => task?.status === 'done').length },
     summary: { logCount: logs.length, eventCount: events.length, caseCount: reviewedCases.length,

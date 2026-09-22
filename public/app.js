@@ -1,7 +1,7 @@
 const app = document.querySelector('#app');
 const dialogRoot = document.querySelector('#dialogs');
 const notifications = document.querySelector('#notifications');
-const state = { session: null, data: null, view: null, goalTab: 'objectives', authMode: new URLSearchParams(location.search).has('invite') ? 'join' : 'login', csrfToken: null, draft: {}, search: '', workspaceId: null, reviewGoalId: null, reviewCaseId: null, returnToReview: false };
+const state = { session: null, data: null, view: null, goalTab: 'objectives', authMode: new URLSearchParams(location.search).has('invite') ? 'join' : 'login', csrfToken: null, draft: {}, correctionDrafts: {}, search: '', workspaceId: null, reviewGoalId: null, reviewCaseId: null, returnToReview: false };
 let fieldSequence = 0;
 let notificationTimer;
 
@@ -51,13 +51,16 @@ async function api(path, options = {}) {
   try { data = await response.json(); } catch { throw new Error('The server returned an unexpected response. Please try again.'); }
   if (!response.ok) {
     if (response.status === 401 && state.session?.user) notify('Your session has expired. Sign in again in another tab, then retry to keep this draft.', true);
-    throw new Error(data.error || 'We could not save that change. Please try again.');
+    const error = new Error(data.error || 'We could not save that change. Please try again.');
+    error.status = response.status;
+    throw error;
   }
   if (data.csrfToken) state.csrfToken = data.csrfToken;
   return data;
 }
 function resetWorkspaceView() {
   state.draft = {};
+  state.correctionDrafts = {};
   state.search = '';
   state.view = null;
   state.reviewGoalId = null;
@@ -363,13 +366,127 @@ function caseBriefing(item, rawCase = {}, goal) {
     el('div', { class: 'briefing-topline' }, el('div', {}, el('div', { class: 'case-reference' }, source?.reference || 'Source-linked work case'), el('h2', {}, item.title)), badge(...status)),
     el('p', { class: 'case-statement' }, item.statement),
     el('div', { class: 'collaborators' }, el('div', { class: 'avatar-stack', 'aria-hidden': 'true' }, arr(item.participants).slice(0, 5).map(person => el('span', { class: 'avatar' }, (person.name || '?').split(/\s+/).slice(0, 2).map(part => part[0]).join('').toUpperCase()))), el('span', {}, arr(item.participants).length ? arr(item.participants).map(person => person.name).join(' · ') : 'No recorded contributors'), el('small', { class: 'sr-only' }, 'Authors of the linked evidence')),
-    current.length > 0 && el('div', { class: 'blocker-list' }, current.map(blocker => blockerRow(blocker))),
-    arr(item.milestones).length > 0 && el('div', { class: 'milestone-strip', 'aria-label': 'Reported activity milestones' }, arr(item.milestones).map(milestone => el('div', { class: `milestone ${milestone.state}` }, el('span', { class: 'milestone-mark', 'aria-hidden': 'true' }, milestone.state === 'reported_complete' ? '✓' : milestone.state === 'waiting' ? '◷' : '·'), el('div', {}, el('strong', {}, milestone.label), el('span', {}, milestone.state === 'reported_complete' ? 'Reported complete' : milestone.state === 'waiting' ? 'Reported waiting' : 'Not evidenced'), evidenceButton(arr(milestone.evidence)[0], 'Source'))))),
+    processMap(item, rawCase),
+    current.length > 0 && el('div', { class: 'blocker-list map-blockers' }, current.map(blocker => blockerRow(blocker))),
     resolved.length > 0 && el('details', { class: 'resolution-history', open: current.length === 0 }, el('summary', {}, `${resolved.length} ${resolved.length === 1 ? 'dependency' : 'dependencies'} resolved in the recorded history`), resolved.map(blocker => blockerRow(blocker))),
     el('div', { class: 'briefing-actions' }, button('Continue this work →', () => continueCase(item.caseId), 'secondary small'), isManager() && followup && button('Create follow-up', () => taskModal(followup), 'small'), el('span', { class: 'field-help' }, 'New evidence updates this picture.')),
     tasks.length > 0 && el('details', { class: 'linked-followups', open: true }, el('summary', {}, `${tasks.length} open ${tasks.length === 1 ? 'follow-up' : 'follow-ups'}`), el('div', { class: 'item-list' }, tasks.map(taskCard)), el('p', { class: 'field-help' }, 'Closing a task does not clear a reported dependency. A later source record does.')),
-    processComparison(rawCase),
     arr(rawCase?.goalLinks).length > 0 && el('details', { class: 'association-detail' }, el('summary', {}, 'Why this work is connected to an objective'), arr(rawCase.goalLinks).map(link => el('p', {}, el('strong', {}, arr(state.data.goals).find(objective => objective.id === link.goalId)?.title || 'Company objective'), el('br'), link.reason || 'Suggested from recorded work context.')))
+  );
+}
+function svgElement(tag, attrs = {}, ...children) {
+  const node = document.createElementNS('http://www.w3.org/2000/svg', tag);
+  for (const [key, value] of Object.entries(attrs)) {
+    if (value === null || value === undefined) continue;
+    if (key.startsWith('on') && typeof value === 'function') node.addEventListener(key.slice(2).toLowerCase(), value);
+    else node.setAttribute(key, String(value));
+  }
+  for (const child of children.flat(Infinity)) if (child !== null && child !== undefined && child !== false) node.append(child instanceof Node ? child : document.createTextNode(String(child)));
+  return node;
+}
+function mapStatus(status) {
+  return { completed: 'Reported complete', in_progress: 'In progress', planned: 'Planned', blocked: 'Reported waiting', recorded: 'Recorded', resolved: 'Resolved by evidence', uncertain: 'Uncertain' }[status] || 'Recorded';
+}
+function mapSourcesModal(title, description, evidence, extra = null) {
+  const sources = arr(evidence);
+  modal(title, description, el('div', { class: 'map-source-dialog' }, extra,
+    sources.length ? sources.map(source => el('article', { class: 'map-source-excerpt' },
+      el('div', { class: 'item-top' }, el('strong', {}, source.authorName || 'Team member'), badge(`Revision ${source.revision || 1}`, 'outline')),
+      el('div', { class: 'meta' }, source.occurredAt ? `Occurred ${date(source.occurredAt, true)}` : 'Occurrence time unknown', '·', { result: 'Result/output', nextDependency: 'Next dependency', text: 'Work description' }[source.sourceField] || 'Work description'),
+      el('blockquote', {}, source.quote || 'No source excerpt available.'), evidenceButton(source, 'Open full record')))
+      : el('p', { class: 'inline-empty' }, 'No supporting work evidence has been matched. This does not establish that the work was not performed.'),
+    el('p', { class: 'field-help' }, 'Source statements are reported evidence. The map preserves their uncertainty and does not certify compliance.')));
+}
+function graphLabel(value, limit = 27) {
+  const words = String(value || 'Recorded activity').split(/\s+/);
+  const lines = []; let line = '';
+  for (const word of words) {
+    if (line && `${line} ${word}`.length > limit) { lines.push(line); line = word; } else line = line ? `${line} ${word}` : word;
+  }
+  if (line) lines.push(line);
+  const result = lines.slice(0, 2).map(text => text.length > limit ? `${text.slice(0, limit - 1)}…` : text);
+  if (lines.length > 2 && result.length) result[result.length - 1] = `${result[result.length - 1].slice(0, limit - 1)}…`;
+  return result;
+}
+function processGraph(map) {
+  const nodes = arr(map.nodes);
+  const edges = arr(map.edges).filter(edge => nodes.some(node => node.id === edge.from) && nodes.some(node => node.id === edge.to));
+  const columns = Math.min(3, Math.max(nodes.length, 1));
+  const width = columns * 218 + 24;
+  const height = Math.ceil(nodes.length / columns) * 125 + 20;
+  const positions = new Map(nodes.map((node, index) => [node.id, { x: 22 + index % columns * 218, y: 18 + Math.floor(index / columns) * 125 }]));
+  const svg = svgElement('svg', { viewBox: `0 0 ${width} ${height}`, class: `process-graph process-graph-cols-${columns}`, role: 'group', 'aria-label': 'Recorded activity map. Only supported connections have arrows.' });
+  const markerId = `map-arrow-${++fieldSequence}`;
+  const resolutionMarkerId = `map-resolution-${fieldSequence}`;
+  svg.append(svgElement('defs', {},
+    svgElement('marker', { id: markerId, markerWidth: 7, markerHeight: 7, refX: 6, refY: 3.5, orient: 'auto', markerUnits: 'strokeWidth' }, svgElement('path', { d: 'M0,0 L7,3.5 L0,7 Z', fill: '#6e8992' })),
+    svgElement('marker', { id: resolutionMarkerId, markerWidth: 7, markerHeight: 7, refX: 6, refY: 3.5, orient: 'auto', markerUnits: 'strokeWidth' }, svgElement('path', { d: 'M0,0 L7,3.5 L0,7 Z', fill: '#619477' }))));
+  const edgeLabels = [];
+  edges.forEach((edge, index) => {
+    const from = positions.get(edge.from), to = positions.get(edge.to);
+    let sx, sy, tx, ty, path, labelX, labelY;
+    if (from.y === to.y) {
+      const forward = to.x > from.x;
+      sx = from.x + (forward ? 174 : 0); sy = from.y + 42;
+      tx = to.x + (forward ? 0 : 174); ty = to.y + 42;
+      if (Math.abs(from.x - to.x) > 220) {
+        const arcY = from.y - 10;
+        path = `M ${sx} ${sy} C ${sx + (forward ? 25 : -25)} ${arcY}, ${tx + (forward ? -25 : 25)} ${arcY}, ${tx} ${ty}`;
+        labelX = (sx + tx) / 2; labelY = arcY + 13;
+      } else { path = `M ${sx} ${sy} L ${tx} ${ty}`; labelX = (sx + tx) / 2; labelY = sy - 10; }
+    } else {
+      const down = to.y > from.y;
+      sx = from.x + 87; sy = from.y + (down ? 83 : 0);
+      tx = to.x + 87; ty = to.y + (down ? 0 : 83);
+      const mid = (sy + ty) / 2;
+      path = `M ${sx} ${sy} C ${sx} ${mid}, ${tx} ${mid}, ${tx} ${ty}`;
+      labelX = (sx + tx) / 2 + 11; labelY = mid;
+    }
+    const open = () => mapSourcesModal(edge.label || 'Supported connection', edge.reason || 'Connection supported by explicit source evidence.', edge.evidence,
+      el('p', { class: 'notice' }, `${nodes.find(node => node.id === edge.from)?.label} → ${nodes.find(node => node.id === edge.to)?.label}`));
+    svg.append(svgElement('path', { d: path, class: `map-edge ${edge.kind === 'resolution' ? 'resolution' : ''}`, 'marker-end': `url(#${edge.kind === 'resolution' ? resolutionMarkerId : markerId})` }));
+    edgeLabels.push(svgElement('g', { class: 'map-edge-control', role: 'button', tabindex: 0, 'aria-label': `Connection ${index + 1}: ${edge.label}. Open source evidence.`, onclick: open, onkeydown: event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); open(); } } },
+      svgElement('circle', { cx: labelX, cy: labelY, r: 9 }), svgElement('text', { x: labelX, y: labelY + 3, 'text-anchor': 'middle' }, String(index + 1))));
+  });
+  nodes.forEach(node => {
+    const point = positions.get(node.id);
+    const label = graphLabel(node.label);
+    const tone = node.kind === 'waiting' && node.status !== 'resolved' ? 'waiting' : node.status === 'resolved' || node.status === 'completed' ? 'complete' : 'neutral';
+    const open = () => mapSourcesModal(node.label, `${mapStatus(node.status)} · ${arr(node.participants).map(person => person.name).join(', ') || 'Source-linked activity'}`, node.evidence);
+    const group = svgElement('g', { class: `map-node ${tone}`, transform: `translate(${point.x},${point.y})`, role: 'button', tabindex: 0, 'aria-label': `${node.label}. ${mapStatus(node.status)}. ${arr(node.evidence).length} ${arr(node.evidence).length === 1 ? 'source' : 'sources'}.`, onclick: open, onkeydown: event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); open(); } } },
+      svgElement('rect', { width: 174, height: 83, rx: 7 }), svgElement('circle', { cx: 14, cy: 17, r: 3 }),
+      svgElement('text', { class: 'map-node-state', x: 23, y: 20 }, mapStatus(node.status)),
+      label.map((line, index) => svgElement('text', { class: 'map-node-label', x: 12, y: 39 + index * 14 }, line)),
+      svgElement('text', { class: 'map-node-source-count', x: 12, y: 73 }, `${arr(node.evidence).length} ${arr(node.evidence).length === 1 ? 'source' : 'sources'} · ${arr(node.participants).length} ${arr(node.participants).length === 1 ? 'author' : 'authors'}`));
+    svg.append(group);
+  });
+  svg.append(...edgeLabels);
+  return el('div', { class: 'process-graph-scroll' }, svg);
+}
+function processMap(item, rawCase) {
+  const map = arr(state.data.processMaps?.cases).find(candidate => candidate.caseId === item.caseId);
+  if (!map) return processComparison(rawCase);
+  const nodes = arr(map.nodes), edges = arr(map.edges);
+  const nodeName = id => nodes.find(node => node.id === id)?.label || 'Recorded activity';
+  const stepRows = arr(map.requirements).map(requirement => el('div', { class: 'map-required-process' },
+    el('div', { class: 'map-required-title' }, el('strong', {}, requirement.title), badge(`v${requirement.version} · Suggested applicability`, 'outline')),
+    el('div', { class: 'map-required-steps' }, arr(requirement.steps).map((step, index) => el('button', { type: 'button', class: `map-required-step ${step.status === 'evidence_found' ? 'matched' : ''}`, onclick: () => mapSourcesModal(step.title, `${requirement.title} · Version ${requirement.version}. Potential evidence does not establish compliance.`, step.evidence,
+      el('p', { class: 'notice' }, arr(step.nodeIds).length ? `Potential supporting activities: ${arr(step.nodeIds).map(nodeName).join(', ')}` : 'This required step has no matched work evidence.')) }, el('span', {}, String(index + 1).padStart(2, '0')), el('strong', {}, step.title), el('small', {}, step.status === 'evidence_found' ? 'Potential evidence ↗' : 'Not evidenced'))))));
+  const edgeList = edges.map((edge, index) => el('button', { class: `map-connection ${edge.kind === 'resolution' ? 'resolution' : ''}`, type: 'button', onclick: () => mapSourcesModal(edge.label || 'Supported connection', edge.reason, edge.evidence) },
+    el('span', { class: 'map-connection-number' }, index + 1), el('span', {}, el('strong', {}, edge.kind === 'resolution' ? 'Later evidence resolves a wait' : 'Explicit dependency'), el('span', {}, `${nodeName(edge.from)} → ${nodeName(edge.to)}`)), el('span', { class: 'map-open-icon', 'aria-hidden': 'true' }, '↗')));
+  const links = arr(map.objectiveLinks).map(link => button(`◎ ${arr(state.data.goals).find(goal => goal.id === link.goalId)?.title || 'Company objective'}`, () => mapSourcesModal('Suggested objective relationship', link.reason, link.evidence), 'quiet'));
+  return el('section', { class: 'process-map', 'aria-label': 'Evidence-backed process map' },
+    el('div', { class: 'process-map-heading' }, el('div', {}, el('div', { class: 'eyebrow' }, 'Process, assembled from evidence'), el('h3', {}, 'What should happen. What is recorded.')), el('span', { class: 'map-live-label' }, 'Updates with source revisions')),
+    el('div', { class: 'map-lane prescribed-lane' }, el('div', { class: 'map-lane-label' }, el('span', {}, 'REQUIRED'), 'Management-defined steps'), stepRows.length ? stepRows : el('p', { class: 'map-empty' }, 'No applicable management requirement is currently suggested for this case.')),
+    el('div', { class: 'map-lane recorded-lane' }, el('div', { class: 'map-lane-label' }, el('span', {}, 'RECORDED'), 'Source-backed activities & connections'),
+      nodes.length ? processGraph(map) : el('p', { class: 'map-empty' }, 'No current activity evidence is available to map.'),
+      el('div', { class: 'map-legend' }, el('span', {}, el('i', { class: 'legend-line dependency', 'aria-hidden': 'true' }), 'Explicit dependency'), el('span', {}, el('i', { class: 'legend-line resolution', 'aria-hidden': 'true' }), 'Later evidence resolves a wait')),
+      !edges.length && nodes.length > 0 && el('p', { class: 'map-sparse-note' }, 'These activities are recorded, but their order or dependency is not established. No connection is assumed.'),
+      edgeList.length > 0 && el('div', { class: 'map-connections' }, edgeList)),
+    el('div', { class: 'map-objectives' }, el('span', {}, 'Suggested relevance'), links.length ? links : el('p', {}, 'No supported objective relationship yet. This work may still be necessary.')),
+    el('details', { class: 'map-accessible-list' }, el('summary', {}, 'Read map as a list'), nodes.map(node => el('div', { class: 'map-list-item' }, el('strong', {}, node.label), el('span', {}, mapStatus(node.status)), button(`Open ${arr(node.evidence).length} sources`, () => mapSourcesModal(node.label, mapStatus(node.status), node.evidence), 'quiet'))), !nodes.length && el('p', {}, 'No current activities.'), edges.map(edge => el('div', { class: 'map-list-item' }, el('strong', {}, `${nodeName(edge.from)} → ${nodeName(edge.to)}`), el('span', {}, edge.reason), button('Open connection sources', () => mapSourcesModal(edge.label, edge.reason, edge.evidence), 'quiet')))),
+    el('p', { class: 'map-method-note' }, 'Placement groups the evidence; only arrows express supported connections. Required order is not observed order. Missing evidence does not mean a step was skipped.'),
+    arr(map.warnings).length > 0 && el('details', { class: 'map-warnings' }, el('summary', {}, 'Interpretation notes'), el('ul', {}, arr(map.warnings).map(warning => el('li', {}, warning))))
   );
 }
 function blockerRow(blocker) {
@@ -455,12 +572,93 @@ function discoveredPatterns(operating, goal) {
     el('p', { class: 'discovery-note' }, 'These patterns describe recorded cases in the displayed group. They do not establish company-wide prevalence or a cause of the KPI gap.')
   );
 }
+function canCorrect(log) { return Boolean(log && (isManager() || log.authorId === state.session?.user?.id)); }
+function sourceContents(log) {
+  return el('div', { class: 'source-contents' }, el('p', { class: 'source-text' }, log.text || ''),
+    el('div', { class: 'source-detail' }, el('strong', {}, 'Result / output'), log.result || 'Not recorded'),
+    el('div', { class: 'source-detail' }, el('strong', {}, 'Next dependency'), log.nextDependency || 'Not recorded'),
+    el('div', { class: 'source-detail' }, el('strong', {}, 'Occurrence time'), log.occurredAt ? `${date(log.occurredAt, true)} · ${log.occurredAt}` : 'Not recorded'));
+}
 function sourceModal(logId, quote) {
   const log = arr(state.data.logs).find(item => item.id === logId);
   if (!log) { notify('This source is not available in the current workspace.', true); return; }
   const warnings = arr(log.analysis?.warnings);
   const engine = log.analysis?.engine === 'openai' ? 'AI extraction' : log.analysis?.engine === 'rules' ? 'Baseline text extraction' : 'Extraction method not recorded';
-  modal('Original work evidence', 'Your source record is kept separately from its automatic interpretation.', el('div', {}, badge(engine, 'outline'), el('div', { class: 'meta' }, log.authorName || 'Team member', '·', `Recorded ${date(log.createdAt, true)}`), log.occurredAt && el('div', { class: 'meta' }, `Occurred ${date(log.occurredAt, true)}`), quote && el('div', { class: 'source-detail' }, el('strong', {}, 'Referenced excerpt'), quote), el('p', { class: 'source-text' }, log.text), log.result && el('div', { class: 'source-detail' }, el('strong', {}, 'Result / output'), log.result), log.nextDependency && el('div', { class: 'source-detail' }, el('strong', {}, 'Next dependency'), log.nextDependency), warnings.length > 0 && el('div', { class: 'source-detail' }, el('strong', {}, 'Extraction notes'), warnings.join('\n')), el('p', { class: 'field-help source-footer' }, 'Statements in a work entry are reported evidence. Suggested relationships do not prove a causal contribution to an outcome.')));
+  modal('Work evidence', 'The current source record, kept separately from its automatic interpretation.', el('div', {},
+    el('div', { class: 'source-toolbar' }, el('div', { class: 'button-row' }, badge(engine, 'outline'), badge(`Revision ${log.revision || 1}`, 'blue')), el('div', { class: 'button-row' }, canCorrect(log) && button(state.correctionDrafts[log.id] ? 'Resume correction' : 'Correct record', () => correctionModal(log.id), 'secondary small'), button('Revision history', () => historyModal(log.id), 'quiet'))),
+    el('div', { class: 'meta' }, log.authorName || 'Team member', '·', `Recorded ${date(log.createdAt, true)}`), log.updatedAt && el('div', { class: 'meta' }, `Corrected ${date(log.updatedAt, true)}`),
+    quote && el('div', { class: 'source-detail source-excerpt' }, el('strong', {}, 'Referenced excerpt'), quote), sourceContents(log),
+    warnings.length > 0 && el('div', { class: 'source-detail' }, el('strong', {}, 'Extraction notes'), warnings.join('\n')),
+    el('p', { class: 'field-help source-footer' }, 'Corrections preserve the old record and rebuild its active interpretation. Suggested relationships do not prove a causal contribution to an outcome.')));
+}
+function localDateTime(value) {
+  if (!value) return '';
+  const parsed = new Date(value);
+  if (!Number.isFinite(parsed.getTime())) return '';
+  return `${localDate(parsed)}T${String(parsed.getHours()).padStart(2, '0')}:${String(parsed.getMinutes()).padStart(2, '0')}`;
+}
+function correctionModal(logId) {
+  const log = arr(state.data.logs).find(item => item.id === logId);
+  if (!canCorrect(log)) { notify('Only the author or a company manager can correct this record.', true); return; }
+  const workspaceId = state.workspaceId;
+  const draft = state.correctionDrafts[logId] || { expectedRevision: log.revision || 1, text: log.text || '', result: log.result || '', nextDependency: log.nextDependency || '', occurredAt: localDateTime(log.occurredAt), originalOccurredAt: log.occurredAt || null, baseOccurredAtInput: localDateTime(log.occurredAt), reason: '' };
+  state.correctionDrafts[logId] = draft;
+  const errorBox = formError();
+  const conflictBox = el('div', { class: 'correction-conflict' });
+  const form = el('form', { class: 'form' },
+    el('p', { class: 'notice' }, `Editing revision ${draft.expectedRevision}. Saving corrects the source and refreshes its map and findings. The previous version remains in history.`),
+    field('Work description', 'text', { type: 'textarea', required: true, maxlength: 12000, rows: 5, value: draft.text }),
+    field('Result / output', 'result', { type: 'textarea', optional: true, maxlength: 4000, rows: 2, value: draft.result }),
+    field('Next dependency', 'nextDependency', { type: 'textarea', optional: true, maxlength: 2000, rows: 2, value: draft.nextDependency }),
+    field('When did this happen?', 'occurredAt', { type: 'datetime-local', optional: true, value: draft.occurredAt, help: 'Use the actual occurrence time when known. Record creation time is preserved.' }),
+    field('Why are you correcting this record?', 'reason', { type: 'textarea', required: true, maxlength: 500, rows: 2, value: draft.reason, placeholder: 'For example: Approval is still pending; the earlier entry was premature.' }),
+    errorBox, conflictBox,
+    el('div', { class: 'button-row' }, button('Keep draft & view record', () => sourceModal(logId), 'secondary'), el('button', { type: 'submit', class: 'button' }, 'Save correction')));
+  form.addEventListener('input', () => { if (state.workspaceId === workspaceId) state.correctionDrafts[logId] = { ...draft, ...formValues(form) }; });
+  const dialog = modal('Correct work evidence', 'No goal mapping or process editing needed. Correct what happened; the service updates its interpretation.', form);
+  bindSubmit(form, errorBox, async values => {
+    if (state.workspaceId !== workspaceId) throw new Error('The workspace changed. Reopen this record in its company workspace.');
+    state.correctionDrafts[logId] = { ...draft, ...values };
+    try {
+      await api(`/api/logs/${encodeURIComponent(logId)}`, { method: 'PATCH', body: { expectedRevision: draft.expectedRevision, text: values.text, result: values.result || '', nextDependency: values.nextDependency || '', occurredAt: values.occurredAt === draft.baseOccurredAtInput ? draft.originalOccurredAt : values.occurredAt ? new Date(values.occurredAt).toISOString() : null, reason: values.reason } });
+      delete state.correctionDrafts[logId];
+      dialog.close();
+      await refresh();
+      notify('Correction saved. The process map and findings now use the revised evidence.');
+      sourceModal(logId);
+    } catch (error) {
+      if (error.status === 409) {
+        conflictBox.replaceChildren(el('h3', {}, 'A newer revision is available'), el('p', {}, 'Your draft is kept. Inspect the history before making another correction. Loading the latest source replaces the fields in this editor; it does not save anything.'),
+          el('div', { class: 'button-row' }, button('Review revision history', () => historyModal(logId), 'secondary small'), button('Load latest source into editor', async () => {
+            try {
+              await refresh();
+              if (state.workspaceId !== workspaceId) return;
+              delete state.correctionDrafts[logId];
+              correctionModal(logId);
+            } catch (loadError) { notify(loadError.message, true); }
+          }, 'secondary small')));
+        throw new Error('This record changed after you opened it. Your draft was not saved or overwritten.');
+      }
+      throw error;
+    }
+  });
+}
+async function historyModal(logId) {
+  const log = arr(state.data.logs).find(item => item.id === logId);
+  if (!log) { notify('This source is not available in the current workspace.', true); return; }
+  const workspaceId = state.workspaceId;
+  const body = el('div', { class: 'revision-history' }, el('p', { class: 'field-help', role: 'status' }, 'Loading source revisions…'));
+  modal('Revision history', 'Exact source versions, with who changed them and why. Only the current version contributes to the live map.', body);
+  try {
+    const history = await api(`/api/logs/${encodeURIComponent(logId)}/history`);
+    if (state.workspaceId !== workspaceId || !body.isConnected) return;
+    body.replaceChildren(el('div', { class: 'revision-history-actions' }, button('Back to current record', () => sourceModal(logId), 'secondary small'), canCorrect(log) && state.correctionDrafts[logId] && button('Resume correction draft', () => correctionModal(logId), 'small')),
+      ...arr(history.revisions).map((version, index) => el('details', { class: 'revision-entry', open: index === 0 },
+        el('summary', {}, el('div', {}, el('strong', {}, `Revision ${version.revision}`), version.revision === history.currentRevision && badge('Current source', 'green'), el('span', {}, `${version.changedBy?.name || 'Original author'} · ${date(version.changedAt, true)}`))),
+        el('div', { class: 'revision-body' }, el('div', { class: 'revision-reason' }, el('strong', {}, 'Reason'), el('p', {}, version.reason || 'Original record')), el('p', { class: 'meta' }, `Original author: ${version.log?.authorName || log.authorName || 'Team member'}`, '·', `Created ${date(version.log?.createdAt || log.createdAt, true)}`), sourceContents(version.log || {})))));
+  } catch (error) {
+    if (state.workspaceId === workspaceId && body.isConnected) body.replaceChildren(el('div', { class: 'form-error', role: 'alert' }, error.message), button('Try again', () => historyModal(logId), 'secondary small'));
+  }
 }
 async function boot() {
   try {

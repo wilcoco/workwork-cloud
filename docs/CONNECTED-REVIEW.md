@@ -4,7 +4,7 @@ This iteration addresses the gap between the original product idea and an ordina
 
 ## What changes when work changes
 
-The server derives the operating view from the company's saved source records on every state refresh. This means a new work record, goal, task or measurement is reflected when the workspace refreshes. Original log text and its original extraction remain unchanged.
+The server derives the operating view from the company's saved source records on every state refresh. This means a new work record, goal, task or measurement is reflected when the workspace refreshes. Derived review does not change original log text or extraction. Since v0.3, an authorized source correction creates a new current revision and preserves prior versions separately.
 
 Each shared case contains:
 
