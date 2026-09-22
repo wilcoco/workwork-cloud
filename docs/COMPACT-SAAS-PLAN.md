@@ -12,7 +12,7 @@ The initial buyer is an owner or operations manager at a manufacturing SMB. Empl
 
 The founder has selected manufacturing SMBs, daily work records as the foundation, top-down OKR/KPI support, process discovery and outcome comparison, and a compact subscription-based cloud service. Exact pricing, packaging limits, payment provider, and long-term customer-isolation architecture remain open.
 
-**Operating-experience requirement:** the founder reports that asking users to enter goal/work mappings or define processes does not work in practice. The service must automatically construct objective–work–result associations and process models. Mandatory employee mapping, taxonomy selection, process drawing, or approval of every AI association is excluded from the core workflow. “Object” in this discussion is interpreted as a company objective; orders, equipment and other business objects remain supporting context.
+**Operating-experience requirement:** the founder reports that asking employees to enter goal/work mappings or define processes does not work in practice. The service must automatically construct objective–work–result associations and observed process models. Mandatory employee mapping, taxonomy selection, process drawing, or approval of every AI association is excluded from the core workflow. Management can nevertheless prescribe tasks and required processes; this is a separate top-down input. Here an objective is a desired outcome, a task is assigned work, and a business object is an order, part or other subject of that work.
 
 Workwork Cloud will provide a repeatable subscription product with a clear customer boundary, dependable outputs, onboarding, subscription access and maintainable releases. Experience with the existing service informs this design; the new product has an independent implementation and release lifecycle.
 
@@ -20,9 +20,9 @@ Workwork Cloud will provide a repeatable subscription product with a clear custo
 
 | View | Primary interaction | Inputs and outputs |
 |---|---|---|
-| Work | Describe what happened and attach supporting material when useful; the service extracts jobs, activities, results and blockers | Bottom-up daily records; useful summaries and handoffs without mapping tasks |
-| Goals | Define direction, measurement rules, targets, ownership and reporting cadence; configure actual-data sources once | OKRs and KPIs share metric definitions and observations |
-| Review | Inspect automatically generated processes and target-versus-actual gaps; make decisions and optionally correct important errors | The two agreed service outputs and the decision they enable |
+| Work | See relevant assigned work and describe what happened; the service extracts jobs, activities, results and blockers | Authorized assignments and bottom-up daily records; useful summaries and handoffs without mapping tasks |
+| Goals | Define objectives, required operating processes, metric rules, targets and ownership; configure actual-data sources once | Versioned management expectations; OKRs and KPIs share metric definitions and observations |
+| Review | Inspect generated processes against applicable requirements and compare targets with actual outcomes | Evidence for process adherence, unresolved execution gaps and outcome gaps; decisions and optional corrections |
 
 Process discovery lives inside Review initially. Company settings, member invitations, access roles, subscription and billing sit in an administration area. Employee access and the default landing view should follow the person's role; not every employee needs a management dashboard.
 
@@ -38,6 +38,7 @@ The initial entry can be a short narrative describing **what the employee did an
 | Associate objectives | Match activities to active objectives/KRs using metric definitions, team context and prior evidence | Relevant work can support several goals; association is not causal contribution |
 | Associate results | Identify metric observations and retrieve actuals from configured sources | Use numeric facts only when metric, unit, scope and period are identifiable; do not estimate outcome achievement from activity counts |
 | Construct processes | Normalize activity vocabulary, assemble identifiable case traces, and generate recurring patterns and variants | Without sufficient sequencing evidence, show an activity-pattern map and suggested workflow rather than assert an observed sequence |
+| Compare required work | Match observed activities and outputs to authorized tasks and applicable mandatory process steps/order | Use the requirement version effective for the case; missing evidence alone does not establish omitted work |
 | Explain gaps | Compare target with current sourced actual, show relevant cases and candidate blockers | Expose missing coverage; explanations remain hypotheses unless substantiated |
 
 The system automatically applies sufficiently supported, reversible associations with source references and derivation versions. It retains uncertain candidates internally and excludes unsupported links from definitive totals. Confidence thresholds must be calibrated on representative records. Optional corrections and targeted questions can improve the model; daily service delivery must not depend on employees reviewing every link.
@@ -62,12 +63,35 @@ Maintain versioned source evidence and structured operational facts beneath gene
 
 The detailed contract, synthetic examples, maintenance rules and acceptance checks are in [Work context and organizational memory](WORK-CONTEXT-AND-MEMORY.md). These additions update the plan; the existing preview still contains prepared examples only.
 
+## 2C. Top-down requirements meet bottom-up evidence
+
+The founder clarified that management must be able to prescribe what employees should accomplish and which processes must be followed. Top-down input therefore has three distinct types:
+
+| Expectation | Meaning | Synthetic example |
+|---|---|---|
+| Objective and target | Desired business outcome | Reduce monthly rejected shipments to a defined target |
+| Assigned task | Work authorized for a person or responsible role, with an expected output and timing | Inspect shipment DEMO-24 before its release deadline |
+| Mandatory process | Required activities, ordering or decisions for a defined scope/trigger | Applicable shipments require an inspection result and a release decision before dispatch |
+
+Management can describe requirements in ordinary language or select an existing procedure. AI can structure the draft and propose tasks. An authorized manager publishes the applicable requirements and assignments, or authorizes standing rules that create tasks for eligible cases. An objective alone does not become an assignment or invent a required procedure. Assigned, acknowledged and accepted are separate states where relevant to company policy.
+
+Store requirement identity/version, applicability and trigger, effective dates, source of authority, responsible role, expected output, timing and evidence/acceptance conditions as applicable. Missing elements remain explicit; an ambiguous draft is not used as a definitive compliance baseline. Routine operating requirements need not have an OKR link.
+
+The service maintains **prescribed process**, **observed process** and **suggested improvement** separately. Both prescribed tasks and observed events refer to shared work items/cases. Compare only the requirements applicable to that case and time; preserve authorized exceptions and their scope without silently replacing the baseline.
+
+Review answers: which required work has supporting evidence, which has no captured evidence yet, where observed actions conflict with requirements, and whether measured outcomes meet targets. A dispatch log without a linked inspection yields missing inspection evidence; a verified dispatch-before-inspection sequence can support an observed ordering deviation. Unclear identity, missing sources or day-level timestamps limit that conclusion. Neither adherence nor task completion establishes goal achievement.
+
+Prescribed requirements can exist before any work logs or discovered process. Employees still describe work without creating or mapping those requirements. Their evidence can also reveal a better process or necessary unplanned work for management to consider.
+
+The first release records requirements and assignments, matches evidence and compares execution. It does not claim to physically prevent dispatch or execute a general workflow engine; any operational enforcement needs an explicitly implemented integration and acceptance check.
+
 ## 3. Default product boundary
 
 | Capability | Proposed treatment | Reason |
 |---|---|---|
 | Work logs, files/photos, work history and comments | Build a compact capture and history experience | Foundation of the service and employee value |
 | Objectives, KPI definitions, targets, actual measurements | Combine into Goals with one measurement model | Avoid duplicate setup and conflicting numbers |
+| Management task assignments and mandatory process requirements | Versioned expectations in Goals/Work, automatically compared with evidence in Review | Support top-down direction without employee mapping or a general process designer |
 | Activity, ontology and strategy/contribution views | Automatic interpretation and association behind Review | Present decisions and evidence without user taxonomy/mapping work |
 | Process patterns and source records | Automatically generated core output inside Review | Essential to the founder's product promise; no mandatory process-definition step |
 | Manuals and reviewed procedures | Context linked from relevant work/processes | Reuse existing knowledge without making a library a mandatory starting point |
@@ -113,6 +137,7 @@ No payment provider is selected. Stripe's documentation illustrates subscription
 - Establish the new repository's application and isolated development/test configuration; use a separate database, storage and secrets. Do not connect startup, scripts or deployments to legacy resources.
 - Implement access checks bound to authenticated identity, with focused role/resource tests.
 - Implement independent work records, shared work-item references and sourced metric observations without mandatory goal links.
+- Model objectives, authorized task assignments and prescribed process requirements separately from observations, including applicability, versions and effective dates.
 - Preserve source revisions and the evidence/access dependencies of derived records; keep inferred relationships separate from recorded commitments and measurements.
 - Make log and measurement-save outcomes explicit and prevent duplicate retries.
 - Define reporting-period selection and aggregation rules; expose missing or stale actuals.
@@ -128,6 +153,7 @@ Deliverable: one example KPI's actual and gap can be reproduced from identified 
 - Automatically extract case/job references and separately linkable activities from daily entries; keep ambiguous identity unresolved.
 - Apply supported goal associations automatically; distinguish automatic, optionally corrected and unresolved links in the evidence detail.
 - Generate processes as records accumulate, with traceable cases and explicit limits on inferred sequences.
+- Let management publish scoped requirements and assignments; compare their applicable versions with observed work, preserving missing evidence, deviations and authorized exceptions as distinct findings.
 - Incrementally maintain case histories and reusable knowledge; re-evaluate affected summaries and links after corrections, and surface contradictory or stale evidence within Review.
 
 Deliverable: an employee completes the daily entry without mapping or process-design work, and a manager receives useful generated processes and gap explanations without developer assistance.
@@ -168,6 +194,8 @@ Deploy and roll back Workwork Cloud through its own release process. Test config
 - Work can be recorded before goal or process configuration, with zero mandatory mapping or process-definition actions by employees.
 - A continued entry preserves its source/case reference; ambiguous standalone entries remain saveable. Multi-activity logs can have different case matches and states.
 - A completed test with a failed result remains completed work with an unresolved outcome. Mentioning a recipient does not create an accepted assignment.
+- Management can prescribe tasks and mandatory steps before work is recorded. AI drafts become binding assignments/rules only through authorized actions or pre-authorized standing rules.
+- Requirement comparisons use the applicable version, trigger and case scope. Missing records or ambiguous event order cannot alone establish nonperformance or a process violation; task/process adherence remains separate from outcome achievement.
 - No measurement save fails silently, and retry does not create unintended duplicate facts.
 - Pilot KPI definitions, periods, denominators where relevant, targets and actual sources are explicit.
 - Every displayed gap can be reproduced; missing data is visibly unavailable rather than zero or inferred success.

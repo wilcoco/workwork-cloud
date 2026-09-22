@@ -19,9 +19,9 @@ This initial version contains product specifications and an interactive interfac
 
 ## Product contract
 
-Inputs: management OKRs, KPI definitions and actual-data sources, and employee work narratives with optional evidence.
+Inputs: management objectives/OKRs, authorized task assignments and mandatory process requirements; KPI definitions and actual-data sources; and employee work narratives with optional evidence.
 
-Outputs: automatically generated process views and evidence-backed target-versus-actual comparisons.
+Outputs: automatically generated process views, comparison with applicable required work/processes, and evidence-backed target-versus-actual outcome comparisons.
 
 The interface has three views: **Work**, **Goals**, and **Review**. Employees are never required to select a taxonomy, map each activity to a goal, draw a process, or approve every generated relationship. Supported associations are applied automatically; uncertain evidence remains identifiable, with optional correction.
 

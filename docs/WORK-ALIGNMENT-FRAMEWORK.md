@@ -1,14 +1,14 @@
 # Work Alignment Framework
 
-Version 0.5 · 2026-09-22 · Workwork Cloud product design proposal
+Version 0.6 · 2026-09-22 · Workwork Cloud product design proposal
 
 Purpose: connect management's goals with employees' daily work in manufacturing SMBs, including companies without formal workflow systems. This develops the founder's confirmed work-log, process-discovery, KPI, and OKR direction. It defines the conceptual framework for the private `wilcoco/workwork-cloud` repository. The new product has its own application, database, storage, secrets and deployment. The existing FDE and Workwork repositories, running services and production data remain unchanged. Development examples use synthetic data.
 
-Operating-experience update: the founder reports that manual mapping and user-defined processes are not adopted. Automatic objective/work/result association and automatic process generation are core requirements. The system handles supported mappings automatically, preserves uncertainty, and offers optional correction. Review queues below are service-quality mechanisms; employees must not be required to classify their records or approve each relationship. The [Compact SaaS Plan](COMPACT-SAAS-PLAN.md) specifies this interaction requirement.
+Operating-experience update: the founder reports that employee mapping and process-definition tasks are not adopted. Automatic objective/work/result association and observed-process generation are core requirements. Management may also prescribe tasks and mandatory processes as an explicit top-down input. The system handles supported mappings automatically, preserves uncertainty, and offers optional correction. Review queues below are service-quality mechanisms; employees must not be required to classify their records or approve each relationship. The [Compact SaaS Plan](COMPACT-SAAS-PLAN.md) specifies this interaction requirement.
 
 ## Input-to-output contract
 
-> Users provide direction, performance measures, and daily work records. The service identifies how work flows and compares desired results with measured outcomes, with links to the underlying evidence.
+> Management provides objectives, assigned work and required processes; metric owners provide measurement definitions and actuals; employees provide daily work evidence. The service compares required work with observed work, discovers processes, and compares targets with measured outcomes.
 
 The founder has specified three input groups and two principal outputs. The definitions below make that product concept concrete; customer value and accuracy still require pilot validation.
 
@@ -16,7 +16,7 @@ The founder has specified three input groups and two principal outputs. The defi
 
 | Input | Who provides it and when | Minimum information | What it enables |
 |---|---|---|---|
-| Strategic direction through OKRs | Management at the start of a goal period, with versioned revisions | Objective, measurable key results, metric reference, baseline where relevant, target, deadline, owner | Define the desired change and assess progress toward it |
+| Management direction and operating requirements | Authorized management at setup or when expectations change, with versioned revisions | Objectives/OKRs and targets; assigned tasks with responsibility, expected output and timing; mandatory processes with applicable scope, triggers, required steps and evidence conditions | Define desired outcomes and prescribed work/processes. These are distinct expectation types; an operating requirement need not have an OKR |
 | Performance measures through KPIs | Management or metric owner configures them; the responsible owner updates actuals at the agreed cadence | Metric definition/formula, unit, scope, period, target or acceptable range, direction of improvement, actual-data source | Monitor performance and make a comparable target-versus-actual calculation |
 | Daily work records and results | Employees record activities; existing records can also supply facts | Work-item/order reference when known, activity, occurrence time, output or status, blocker/handoff, evidence; relevant measurable facts when available | Connect work, identify recurring sequences, and supply outcome observations where the data is sufficient |
 
@@ -38,7 +38,7 @@ The employee's initial interaction stays short: “What did you do, and what hap
 
 | Output | What the customer receives | Basis and limits |
 |---|---|---|
-| Observed process map | Automatically generated steps, roles, handoffs, variants, exceptions, linked source records, and timing when supported | Derived from repeated, identifiable cases; show sample coverage and missing steps. Publication does not require users to confirm the map; adopting a future operating procedure is a separate decision |
+| Process and execution review | Automatically generated steps, roles, handoffs, variants and timing, compared with applicable assigned work and prescribed processes when available | Link observed patterns and comparison findings to cases, source records and requirement versions; expose insufficient evidence. Management may prescribe a process before observations exist. Generated patterns do not automatically change requirements |
 | Target-versus-actual review | For each KPI/KR: target, actual, gap, period, source, data freshness/coverage, and relevant work or blockers | Requires comparable measurements using the same definition, scope, and period. Relevant work helps investigation but does not establish the cause of a gap |
 
 The service may propose follow-up actions, but its core deliverables remain these two outputs. An execution-record gap from the reconciliation groups below is distinct from a business-outcome gap. If management has supplied only an outcome target, the service cannot claim a specific task was omitted unless a task expectation or approved process also exists.
@@ -68,14 +68,14 @@ For an unfinished period, show interim actuals and label any comparison with the
 
 | Concept | Question | Minimum content | Manufacturing example |
 |---|---|---|---|
-| Goal | What should improve or be maintained? | Objective or operating requirement, owner, period; metric definition, baseline where relevant, target, assessment rule | Raise on-time delivery from 85% to 95% this quarter |
+| Goal | What should improve or be maintained? | Desired outcome or performance requirement, owner, period; metric definition, baseline where relevant, target, assessment rule | Raise on-time delivery from 85% to 95% this quarter |
 | Work item | What identifiable work are we talking about? | Stable ID, bounded scope, business reference; owner, expected output and timing when known | Material readiness check for production order 1042 |
 | Work record | What actually happened? | Actor, activity, occurrence time, output/status, work-item link or pending match; supporting evidence when available | Buyer confirmed a shortage and contacted the supplier |
 | Result | What did we measure? | Metric ID, observed value, unit, period or time, population, source, verification state | 92 of 100 eligible orders delivered on time this month |
 
 These are connected concepts with distinct responsibilities, not four mutually exclusive categories of work. A daily narrative may mention all four; its statements should be linked to the appropriate records rather than forcing the whole narrative into one category.
 
-Evidence attaches to a claim or measurement. A process is a pattern across work records and cases; it can later become a reviewed template. People, teams, orders, equipment, files, and permissions provide context. They are not additional mandatory stages employees must complete.
+Evidence attaches to a claim or measurement. An observed process is a pattern across work records and cases; a prescribed process is a versioned management requirement that can exist before any observations; a suggested process is a proposed improvement. Keep these models distinct. Assigned tasks are work items with authorized expectations. People, teams, orders, equipment, files, and permissions provide context. They are not additional mandatory setup stages employees must complete to log work.
 
 An OKR's desired target belongs with the goal; its observed value belongs with results. The same metric can support an ongoing KPI and a time-bound key result without creating duplicate measurements. A relevant activity is not automatically a measurement of business success.
 
@@ -83,13 +83,15 @@ An OKR's desired target belongs with the goal; its observed value belongs with r
 
 ```mermaid
 flowchart TD
-    G[Goals and operating requirements] -->|Top-down expectations| W[Shared work items]
+    G[Objectives and outcome targets] -->|Management authorizes work| W[Shared work items and cases]
+    M[Assigned tasks and mandatory processes] -->|Applicable version and scope| W
     L[Daily work records and evidence] -->|Bottom-up activity| W
     L -->|Repeated sequences across cases| P[Observed process patterns]
-    P -->|Human review| T[Optional standard processes]
-    T -->|Future expectations| W
+    P -->|Suggest improvements| T[Suggested process improvements]
+    T -->|Management authorizes revision| M
     R[Measured results and sources] -->|Compare with targets| G
-    W -->|Inspect execution alongside outcomes| V[Management and team review]
+    M -->|Compare required work| V[Management and team review]
+    W -->|Inspect observed execution| V
     R --> V
     V -->|Revise priorities and assumptions| G
 ```
@@ -140,7 +142,7 @@ Reconciliation, completion, evidence, goal association, and outcome assessment a
 | Completion | Separate reported activity completion, output/result and acceptance. Apply explicit acceptance only where the case requires it; do not require approval of every ordinary work log |
 | Evidence | Show the claim, attached sources, and review state; attachment is not verification |
 | Outcome assessment | Meets target / misses target / not assessable, according to a defined metric, period, and decision rule |
-| Process | Distinguish the observed pattern from the approved standard and its effective version |
+| Process | Keep prescribed requirements, observed patterns and suggested improvements separate; evaluate applicable version/scope and any authorized exceptions |
 
 Do not classify work as “strategic / routine / urgent” and call that MECE. An urgent maintenance task can be routine and support a strategic goal at the same time. These are separate attributes.
 
@@ -158,7 +160,7 @@ Goals with no linked work items remain visible as a separate planning question. 
 
 Process mining commonly relies on case identifiers, activity names, and occurrence timestamps. Narrative-only records can suggest patterns but cannot establish reliable sequences on their own. [Microsoft process-mining data requirements](https://learn.microsoft.com/en-us/power-automate/process-mining-processes-and-data)
 
-Recurring processes can exist without strategic goal links. Some work remains one-off. Standardization is optional and follows observation, rather than being a prerequisite for logging.
+Recurring processes can exist without strategic goal links. Some work remains one-off. Management can prescribe mandatory processes before any records exist; the service can also suggest improvements from observations. Neither path makes employee process-definition work a prerequisite for logging. Missing expected evidence is distinct from demonstrated deviation, and adherence is distinct from achievement of the business target.
 
 ### Maintain the interpretation over time
 
@@ -190,9 +192,9 @@ These examples are design checks, not pilot validation or automated software tes
 
 Three user views can expose the four concepts:
 
-- **Work:** quick logging, automatically extracted work items and links, evidence, and useful daily summaries.
-- **Goals:** objectives, performance measures, targets and actual-data sources.
-- **Review:** automatically generated process maps and outcome gaps, with optional execution reconciliation when expectations exist. Coverage limitations remain visible; resolving an employee classification queue is not a condition for using the service.
+- **Work:** relevant authorized assignments, quick logging, automatically extracted work items and links, evidence, and useful daily summaries.
+- **Goals:** objectives, management operating requirements, performance measures, targets and actual-data sources.
+- **Review:** automatically generated process maps, comparison with applicable required work/processes, and outcome gaps. Coverage limitations remain visible; resolving an employee classification queue is not a condition for using the service.
 
 The first product should support this loop before adding a universal workflow designer. Implement independent work logs, stable work-item links and sourced metric observations in the new Workwork Cloud application. Any reused source components are copied, adapted and verified only in the new repository. This framework does not authorize changes or migrations to the existing services; the [Compact SaaS Plan](COMPACT-SAAS-PLAN.md) defines the independent build scope.
 

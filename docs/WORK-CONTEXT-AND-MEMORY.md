@@ -44,7 +44,7 @@ All examples in this repository are synthetic. No customer exports, original emp
 
 Karpathy describes an LLM-maintained, persistent set of interconnected knowledge pages derived from source material, guided by a schema and maintained through ingestion, querying and consistency checks. His original description explicitly includes business/team use. [Original LLM Wiki idea, published April 4, 2026](https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f) (reviewed September 22, 2026).
 
-Our design interpretation: use this pattern to accumulate a company's operational knowledge from everyday work, while adding structured case state, collaboration dependencies, objective/metric relationships and measured results. Calling it a business wiki alone does not explain those requirements. The potential distinction must be demonstrated through useful outputs and low setup/maintenance effort for manufacturing SMBs.
+Our design interpretation: its source-to-knowledge flow is a useful bottom-up analogy. Workwork Cloud also has an explicit top-down path: management defines objectives, assigns work and prescribes mandatory processes. The service connects those expectations to observed case state, collaboration dependencies, process patterns and measured results. Calling it a business wiki alone does not explain those requirements. This comparison does not claim that the LLM Wiki pattern prohibits top-down schemas or goals. The potential distinction must be demonstrated through useful outputs and low setup/maintenance effort for manufacturing SMBs.
 
 The analogy does not require Markdown as the primary operational database, an Obsidian dependency, or a fourth Wiki screen. Those are implementation/UI choices, not accepted product requirements.
 
@@ -53,11 +53,15 @@ The analogy does not require Markdown as the primary operational database, an Ob
 | Layer | Responsibility | Boundary |
 |---|---|---|
 | Source evidence | Work records, replies, requests, files and sourced measurements, with identifiers and revisions | AI-generated interpretations do not overwrite originals; authorized corrections remain traceable |
-| Structured operational model | Shared cases, events, outputs, typed dependencies, goal/metric definitions and observations | Distinguish reports, calculated values, accepted commitments and inferred relationships; deterministic validation governs authoritative state changes |
+| Structured operational model | Shared cases, assigned tasks, versioned process requirements, events, outputs, typed dependencies, goal/metric definitions and observations | Distinguish expectations, reports, calculated values, authorized assignments, accepted commitments and inferred relationships; deterministic validation governs authoritative state changes |
 | Derived organizational knowledge | Case summaries, capability/context suggestions, recurring patterns, exceptions and reusable explanations | Maintain source links, scope, derivation version and freshness. Repetition does not turn a practice into an approved standard |
 | Work / Goals / Review | Capture evidence, define expectations, inspect processes and outcomes, record an agreed next action | An agreed action produces new work evidence; a generated recommendation is not an executed action |
 
 New evidence updates the relevant case and derived knowledge. Reusable knowledge can inform a later case; its applicability and source dates remain visible. Customer/team permissions apply to every layer, including summaries, search, files, generated maps and model context. Combining sources must not reveal a restricted source through an unrestricted summary.
+
+Management requirements enter this model directly; they do not need to be discovered from work history. Store prescribed processes separately from observed patterns and suggested improvements. An authorized assignment is distinct from acknowledgement or acceptance; a generated suggestion establishes none of these on its own. Management can authorize individual work or standing rules for creating work when a defined trigger occurs.
+
+Compare evidence with the requirement version, scope and effective time applicable to the case. Later changes must not retrospectively turn earlier work into a violation. Missing evidence, demonstrated deviation, an authorized exception and an unmet business target are different findings. See the [top-down requirements contract](COMPACT-SAAS-PLAN.md#2c-top-down-requirements-meet-bottom-up-evidence).
 
 ## 5. Incremental maintenance rules
 
@@ -76,6 +80,8 @@ New evidence updates the relevant case and derived knowledge. Reusable knowledge
 - Two cases involving the same product remain separate unless their identities are supported. A mixed daily log can contribute to several cases.
 - A completed test and an unresolved quality issue coexist. A future due date remains a plan; posting order does not establish event order.
 - A person's mention does not create an assignment; a required decision remains distinct from information sharing.
+- Management can prescribe an assignment or mandatory procedure before work is recorded, while employee logging remains independent of manual mapping. Changes in requirements preserve the historical baseline and applicable exceptions.
+- A required inspection with no captured record yields an evidence gap. A process deviation requires supporting case identity, event facts and timing; completed required steps do not by themselves establish KPI achievement.
 - Correcting an event time or unit refreshes affected calculations and explanations while preserving provenance. Restricted evidence is not exposed in generated views.
 - Original manual/AI/no-goal classifications remain traceable when the new system proposes case-level relationships. Relevance does not become causal credit.
 - The product/service team evaluates sampled correctness, unsupported case merges, process-edge support, mapping precision and coverage, freshness and calculation reproducibility. Employees are not the default labeling workforce.
