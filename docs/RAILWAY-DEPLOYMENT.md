@@ -1,6 +1,22 @@
 # Deploy the independent MVP on Railway
 
-Use `wilcoco/workwork-cloud`. Do not select the existing workwork service or its database. The repository includes a Dockerfile and `railway.json`; creating a new service is still required.
+Use `wilcoco/workwork-cloud`. Do not select the existing workwork service or its database. The repository includes a Dockerfile and `railway.json`.
+
+## Current public MVP — 2026-09-26
+
+- Public URL: [Workwork Cloud](https://workwork-cloud-production.up.railway.app).
+- Project/service: a new independent `workwork-cloud` project and service, in the `production` environment. [Railway dashboard](https://railway.com/project/ff91f657-6946-42e8-84f2-7c06d0977068/service/fd3dfe5e-d334-447f-b5bc-5d0098b1a446?environmentId=e937a91d-26d5-4441-b7cc-cd08955e2263).
+- Application source: v0.3, commit `0599324`. Uploaded from a clean Git archive through the Railway CLI. Railway's GitHub integration returned `repo not found`, so GitHub automatic deployments are not enabled.
+- New volume: `workwork-cloud-volume`, mounted at `/data`; one replica; baseline rule extraction. `PORT=3000` and `APP_ORIGIN=https://workwork-cloud-production.up.railway.app`.
+- Public registration starts a new workspace. Local accounts, demo databases and environment files were not uploaded.
+
+To publish a subsequent verified release from a clean checkout of this repository, use the exact independent target:
+
+```sh
+railway up --project ff91f657-6946-42e8-84f2-7c06d0977068 --service fd3dfe5e-d334-447f-b5bc-5d0098b1a446 --environment e937a91d-26d5-4441-b7cc-cd08955e2263 --detach
+```
+
+Keep `.gitignore` and `.dockerignore` in effect; never add `--no-gitignore` or include local databases/secrets. Preserve the attached volume when deploying updates. The instructions below describe creating an additional independent deployment and ongoing operating requirements.
 
 ## Setup
 

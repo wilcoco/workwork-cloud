@@ -2,6 +2,8 @@
 
 A working multi-company pilot for manufacturing SMBs. Management defines objectives and required work. Employees describe daily work. The service builds source-linked case histories, suggests goal relationships, and compares recorded evidence and measurements with management expectations.
 
+**Public MVP:** [Open Workwork Cloud](https://workwork-cloud-production.up.railway.app). Choose **Create a company** to register an independent workspace. Local demo accounts and data are not copied to the public service.
+
 ## Run locally
 
 Requires **Node.js 22.14 or newer**. There are no third-party runtime packages to install.
